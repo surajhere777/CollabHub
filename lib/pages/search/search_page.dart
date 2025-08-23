@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hackathonpro/provider/post_provider.dart';
+import 'package:hackathonpro/provider/user_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class BrowseProjectsPage extends StatefulWidget {
   @override
@@ -49,156 +52,121 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
     'Writing',
   ];
 
-  // Sample projects data - replace with your actual data
-  // List<Map<String, dynamic>> allProjects = [
-  //   {
-  //     'id': 1,
-  //     'title': 'E-commerce Website Development',
-  //     'description':
-  //         'Need a full-stack e-commerce site with payment integration, user authentication, and admin panel.',
-  //     'tokens': 120,
-  //     'deadline': '2 weeks',
-  //     'category': 'Web Development',
-  //     'requester': 'Sarah Kim',
-  //     'requesterRating': 4.8,
-  //     'skills': ['React', 'Node.js', 'JavaScript'],
-  //     'bids': 5,
-  //     'postedDate': '2024-01-20',
-  //     'urgency': 'medium',
-  //   },
-  //   {
-  //     'id': 2,
-  //     'title': 'Mobile App UI/UX Design',
-  //     'description':
-  //         'Design complete UI/UX for fitness tracking mobile app. Need wireframes, mockups, and prototypes.',
-  //     'tokens': 80,
-  //     'deadline': '1 week',
-  //     'category': 'Design',
-  //     'requester': 'Mike Johnson',
-  //     'requesterRating': 4.6,
-  //     'skills': ['Figma', 'UI/UX', 'Mobile'],
-  //     'bids': 12,
-  //     'postedDate': '2024-01-22',
-  //     'urgency': 'high',
-  //   },
-  //   {
-  //     'id': 3,
-  //     'title': 'Data Analysis for Marketing Campaign',
-  //     'description':
-  //         'Analyze customer data and create insights report with visualizations for marketing strategy.',
-  //     'tokens': 60,
-  //     'deadline': '5 days',
-  //     'category': 'Data Science',
-  //     'requester': 'Emma Davis',
-  //     'requesterRating': 4.9,
-  //     'skills': ['Python', 'Data Analysis'],
-  //     'bids': 8,
-  //     'postedDate': '2024-01-21',
-  //     'urgency': 'high',
-  //   },
-  //   {
-  //     'id': 4,
-  //     'title': 'Blog Content Writing',
-  //     'description':
-  //         'Write 5 SEO-optimized blog posts about sustainable living. Each post should be 1500+ words.',
-  //     'tokens': 45,
-  //     'deadline': '1 week',
-  //     'category': 'Writing',
-  //     'requester': 'Alex Chen',
-  //     'requesterRating': 4.3,
-  //     'skills': ['Writing', 'SEO'],
-  //     'bids': 15,
-  //     'postedDate': '2024-01-19',
-  //     'urgency': 'low',
-  //   },
-  //   {
-  //     'id': 5,
-  //     'title': 'Flutter Mobile App Development',
-  //     'description':
-  //         'Build a cross-platform mobile app for task management with Firebase integration.',
-  //     'tokens': 100,
-  //     'deadline': '3 weeks',
-  //     'category': 'Mobile Development',
-  //     'requester': 'John Smith',
-  //     'requesterRating': 4.7,
-  //     'skills': ['Flutter', 'Firebase', 'Mobile'],
-  //     'bids': 3,
-  //     'postedDate': '2024-01-23',
-  //     'urgency': 'medium',
-  //   },
-  // ];
-
   List<Map<String, dynamic>> allProjects =
       []; // Assume this gets populated from an API or database
-  List<Map<String, dynamic>> getfilteredProjects(
+
+  List<Map<String, dynamic>> getFilteredProjects(
     List<Map<String, dynamic>> allProjects,
+    UserProvider userProvider,
   ) {
     List<Map<String, dynamic>> filtered = List.from(allProjects);
 
-    // Filter by search
+    // FIRST: Filter out current user's own posts (most important filter)
+    print(userProvider.user!.uid != filtered[0]['ownerId']);
+    if (userProvider.user != null) {
+      filtered = filtered
+          .where((project) => project['ownerId'] != userProvider.user!.uid)
+          .toList();
+    }
+
+    // Filter by search text
     if (_searchController.text.isNotEmpty) {
       filtered = filtered
           .where(
             (project) =>
-                project['title'].toLowerCase().contains(
-                  _searchController.text.toLowerCase(),
-                ) ||
-                project['description'].toLowerCase().contains(
-                  _searchController.text.toLowerCase(),
-                ),
+                (project['title'] != null &&
+                    project['title'].toString().toLowerCase().contains(
+                      _searchController.text.toLowerCase(),
+                    )) ||
+                (project['description'] != null &&
+                    project['description'].toString().toLowerCase().contains(
+                      _searchController.text.toLowerCase(),
+                    )),
           )
           .toList();
     }
 
     // Filter by category
-    if (_selectedCategory != 'All') {
+    if (_selectedCategory != null && _selectedCategory != 'All') {
       filtered = filtered
           .where((project) => project['category'] == _selectedCategory)
           .toList();
     }
 
     // Filter by token range
-    filtered = filtered
-        .where(
-          (project) =>
-              project['tokens'] >= _tokenRange.start &&
-              project['tokens'] <= _tokenRange.end,
-        )
-        .toList();
+    if (_tokenRange != null) {
+      filtered = filtered.where((project) {
+        final tokens = project['tokens'];
+        if (tokens == null) return false;
+        return tokens >= _tokenRange.start && tokens <= _tokenRange.end;
+      }).toList();
+    }
 
     // Filter by skills
     if (_selectedSkills.isNotEmpty) {
       filtered = filtered.where((project) {
-        List<String> projectSkills = List<String>.from(project['skills']);
-        return _selectedSkills.any((skill) => projectSkills.contains(skill));
+        final projectSkills = project['skills'];
+        if (projectSkills == null) return false;
+
+        List<String> skillsList = List<String>.from(projectSkills);
+        return _selectedSkills.any((skill) => skillsList.contains(skill));
       }).toList();
     }
 
     // Sort projects
     switch (_sortBy) {
       case 'highest_tokens':
-        filtered.sort((a, b) => b['tokens'].compareTo(a['tokens']));
+        filtered.sort((a, b) {
+          final tokensA = a['tokens'] ?? 0;
+          final tokensB = b['tokens'] ?? 0;
+          return tokensB.compareTo(tokensA);
+        });
         break;
+
       case 'lowest_tokens':
-        filtered.sort((a, b) => a['tokens'].compareTo(b['tokens']));
+        filtered.sort((a, b) {
+          final tokensA = a['tokens'] ?? 0;
+          final tokensB = b['tokens'] ?? 0;
+          return tokensA.compareTo(tokensB);
+        });
         break;
+
       case 'most_bids':
-        filtered.sort((a, b) => b['bids'].compareTo(a['bids']));
+        filtered.sort((a, b) {
+          final bidsA = a['bids'] ?? 0;
+          final bidsB = b['bids'] ?? 0;
+          return bidsB.compareTo(bidsA);
+        });
         break;
+
       case 'oldest':
-        filtered.sort((a, b) => a['postedTime'].compareTo(b['postedTime']));
+        filtered.sort((a, b) {
+          final timeA = a['postedTime'];
+          final timeB = b['postedTime'];
+          if (timeA == null || timeB == null) return 0;
+          return timeA.compareTo(timeB);
+        });
         break;
+
       case 'deadline':
         // Sort by urgency (high, medium, low)
         final urgencyOrder = {'high': 0, 'medium': 1, 'low': 2};
-        filtered.sort(
-          (a, b) => urgencyOrder[a['urgency']]!.compareTo(
-            urgencyOrder[b['urgency']]!,
-          ),
-        );
+        filtered.sort((a, b) {
+          final urgencyA = a['urgency'] ?? 'low';
+          final urgencyB = b['urgency'] ?? 'low';
+          return (urgencyOrder[urgencyA] ?? 2).compareTo(
+            urgencyOrder[urgencyB] ?? 2,
+          );
+        });
         break;
+
       default: // newest
-        filtered.sort((a, b) => b['postedTime'].compareTo(a['postedTime']));
+        filtered.sort((a, b) {
+          final timeA = a['postedTime'];
+          final timeB = b['postedTime'];
+          if (timeA == null || timeB == null) return 0;
+          return timeB.compareTo(timeA);
+        });
     }
 
     return filtered;
@@ -207,8 +175,9 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
   @override
   Widget build(BuildContext context) {
     final postProvider = Provider.of<PostProvider>(context);
+    final userProvider = Provider.of<UserProvider>(context);
     final List<Map<String, dynamic>> allProjects = postProvider.posts;
-    final filteredProjects = getfilteredProjects(allProjects);
+    final filteredProjects = getFilteredProjects(allProjects, userProvider);
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -786,60 +755,137 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
       ),
     );
   }
-}
 
-void _showBidDialog(Map<String, dynamic> project, BuildContext context) {
-  TextEditingController bidController = TextEditingController();
-  TextEditingController messageController = TextEditingController();
+  void _showBidDialog(Map<String, dynamic> project, BuildContext context) {
+    TextEditingController bidController = TextEditingController();
+    TextEditingController messageController = TextEditingController();
 
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('Submit Your Bid'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Project: ${project['title']}'),
-            SizedBox(height: 16),
-            TextField(
-              controller: bidController,
-              decoration: InputDecoration(
-                labelText: 'Your bid (tokens)',
-                border: OutlineInputBorder(),
-                hintText: 'Enter your bid amount',
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Submit Your Bid'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Project: ${project['title']}'),
+              SizedBox(height: 16),
+              TextField(
+                controller: bidController,
+                decoration: InputDecoration(
+                  labelText: 'Your bid (tokens)',
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter your bid amount',
+                ),
+                keyboardType: TextInputType.number,
               ),
-              keyboardType: TextInputType.number,
+              SizedBox(height: 16),
+              TextField(
+                controller: messageController,
+                decoration: InputDecoration(
+                  labelText: 'Cover message',
+                  border: OutlineInputBorder(),
+                  hintText: 'Why should you be chosen for this project?',
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
             ),
-            SizedBox(height: 16),
-            TextField(
-              controller: messageController,
-              decoration: InputDecoration(
-                labelText: 'Cover message',
-                border: OutlineInputBorder(),
-                hintText: 'Why should you be chosen for this project?',
-              ),
-              maxLines: 3,
+            ElevatedButton(
+              onPressed: () async {
+                await _submitBid(
+                  project,
+                  bidController.text,
+                  messageController.text,
+                );
+                Navigator.pop(context);
+              },
+              child: Text('Submit Bid'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Future<void> _submitBid(
+    Map<String, dynamic> project,
+    String bidAmount,
+    String message,
+  ) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Please login to submit a bid')));
+        return;
+      }
+
+      if (bidAmount.isEmpty || int.tryParse(bidAmount) == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please enter a valid bid amount')),
+        );
+        return;
+      }
+
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+      // Create bid data
+      Map<String, dynamic> bidData = {
+        'bidderId': user.uid,
+        'bidderName':
+            '${userProvider.user!.firstname} ${userProvider.user!.lastname}',
+        'bidderEmail': user.email,
+        'bidAmount': int.parse(bidAmount),
+        'message': message,
+        'submittedAt': FieldValue.serverTimestamp(),
+        'status': 'pending', // pending, accepted, rejected
+      };
+
+      // Get project document ID
+      String projectId =
+          project['id']; // Make sure your PostProvider includes document ID
+
+      if (projectId.isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: Project ID not found')));
+        return;
+      }
+
+      // Add bid to the bids subcollection
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(projectId)
+          .collection('bids')
+          .add(bidData);
+
+      // Update the bid count in the main post document
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(projectId)
+          .update({'bids': FieldValue.increment(1)});
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Bid submitted successfully!')));
+
+      // Refresh the page to show updated bid count
+      setState(() {});
+    } catch (e) {
+      print('Error submitting bid: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to submit bid. Please try again.'),
+          backgroundColor: Colors.red,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Handle bid submission
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Bid submitted successfully!')),
-              );
-            },
-            child: Text('Submit Bid'),
-          ),
-        ],
       );
-    },
-  );
+    }
+  }
 }

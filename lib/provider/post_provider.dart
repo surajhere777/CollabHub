@@ -34,6 +34,7 @@ class PostProvider with ChangeNotifier {
           'postedTime': data['postedTime'].toString(),
           'difficulty': data['difficulty'] ?? 'Beginner',
           'urgency': data['urgency'] ?? 'Normal',
+          // 'ownerId': data['ownerId'] ?? '',
         };
       }).toList();
 
@@ -55,5 +56,83 @@ class PostProvider with ChangeNotifier {
   /// Delete a post
   Future<void> deletePost(String id) async {
     await _firestore.collection('posts').doc(id).delete();
+  }
+
+  Future<void> submitBid({
+    required String projectId,
+    required String bidderId,
+    required String bidderName,
+    required String bidderEmail,
+    required int bidAmount,
+    required String message,
+  }) async {
+    try {
+      Map<String, dynamic> bidData = {
+        'bidderId': bidderId,
+        'bidderName': bidderName,
+        'bidderEmail': bidderEmail,
+        'bidAmount': bidAmount,
+        'message': message,
+        'submittedAt': FieldValue.serverTimestamp(),
+        'status': 'pending',
+      };
+
+      // Add bid to subcollection
+      await _firestore
+          .collection('posts')
+          .doc(projectId)
+          .collection('bids')
+          .add(bidData);
+
+      // Update bid count
+      await _firestore.collection('posts').doc(projectId).update({
+        'bids': FieldValue.increment(1),
+      });
+    } catch (e) {
+      throw Exception('Failed to submit bid: $e');
+    }
+  }
+
+  /// Get all bids for a specific project
+  Stream<QuerySnapshot> getBidsForProject(String projectId) {
+    return _firestore
+        .collection('posts')
+        .doc(projectId)
+        .collection('bids')
+        .orderBy('submittedAt', descending: true)
+        .snapshots();
+  }
+
+  /// Accept a bid
+  Future<void> acceptBid(String projectId, String bidId) async {
+    try {
+      await _firestore
+          .collection('posts')
+          .doc(projectId)
+          .collection('bids')
+          .doc(bidId)
+          .update({'status': 'accepted'});
+
+      // Optionally update project status
+      await _firestore.collection('posts').doc(projectId).update({
+        'status': 'assigned',
+      });
+    } catch (e) {
+      throw Exception('Failed to accept bid: $e');
+    }
+  }
+
+  /// Reject a bid
+  Future<void> rejectBid(String projectId, String bidId) async {
+    try {
+      await _firestore
+          .collection('posts')
+          .doc(projectId)
+          .collection('bids')
+          .doc(bidId)
+          .update({'status': 'rejected'});
+    } catch (e) {
+      throw Exception('Failed to reject bid: $e');
+    }
   }
 }

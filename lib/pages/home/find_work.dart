@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hackathonpro/provider/post_provider.dart';
+import 'package:hackathonpro/provider/user_provider.dart';
 import 'package:provider/provider.dart';
 
 class FindWorkPage extends StatefulWidget {
@@ -451,7 +454,7 @@ class _FindWorkPageState extends State<FindWorkPage> {
                   SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
-                      _showBidDialog(project);
+                      _showBidDialog2(project, context);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue[600],
@@ -570,13 +573,6 @@ class _FindWorkPageState extends State<FindWorkPage> {
               onPressed: () => Navigator.pop(context),
               child: Text('Close'),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showBidDialog(project);
-              },
-              child: Text('Bid Now'),
-            ),
           ],
         );
       },
@@ -637,5 +633,138 @@ class _FindWorkPageState extends State<FindWorkPage> {
         );
       },
     );
+  }
+
+  void _showBidDialog2(Map<String, dynamic> project, BuildContext context) {
+    TextEditingController bidController = TextEditingController();
+    TextEditingController messageController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Submit Your Bid'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Project: ${project['title']}'),
+              SizedBox(height: 16),
+              TextField(
+                controller: bidController,
+                decoration: InputDecoration(
+                  labelText: 'Your bid (tokens)',
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter your bid amount',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: messageController,
+                decoration: InputDecoration(
+                  labelText: 'Cover message',
+                  border: OutlineInputBorder(),
+                  hintText: 'Why should you be chosen for this project?',
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _submitBid(
+                  project,
+                  bidController.text,
+                  messageController.text,
+                );
+                Navigator.pop(context);
+              },
+              child: Text('Submit Bid'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _submitBid(
+    Map<String, dynamic> project,
+    String bidAmount,
+    String message,
+  ) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Please login to submit a bid')));
+        return;
+      }
+
+      if (bidAmount.isEmpty || int.tryParse(bidAmount) == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please enter a valid bid amount')),
+        );
+        return;
+      }
+
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+      // Create bid data
+      Map<String, dynamic> bidData = {
+        'bidderId': user.uid,
+        'bidderName':
+            '${userProvider.user!.firstname} ${userProvider.user!.lastname}',
+        'bidderEmail': user.email,
+        'bidAmount': int.parse(bidAmount),
+        'message': message,
+        'submittedAt': FieldValue.serverTimestamp(),
+        'status': 'pending', // pending, accepted, rejected
+      };
+
+      // Get project document ID
+      String projectId =
+          project['id']; // Make sure your PostProvider includes document ID
+
+      if (projectId.isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: Project ID not found')));
+        return;
+      }
+
+      // Add bid to the bids subcollection
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(projectId)
+          .collection('bids')
+          .add(bidData);
+
+      // Update the bid count in the main post document
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(projectId)
+          .update({'bids': FieldValue.increment(1)});
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Bid submitted successfully!')));
+
+      // Refresh the page to show updated bid count
+      setState(() {});
+    } catch (e) {
+      print('Error submitting bid: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to submit bid. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hackathonpro/pages/home/bid_now_page.dart';
@@ -13,40 +14,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  List<Map<String, dynamic>> featuredProjects = [];
+  bool isLoadingPosts = true;
 
-  // Sample data - replace with your actual data models
-  final currentUser = {
-    'name': 'Alex Chen',
-    'tokens': 85,
-    'rating': 4.8,
-    'avatar': 'assets/avatar.png', // Add your asset
-  };
-
-  // final List<Map<String, dynamic>> featuredProjects = [
-  //   {
-  //     'title': 'Portfolio Website',
-  //     'description': 'Need a responsive portfolio site with React...',
-  //     'tokens': 50,
-  //     'deadline': '5 days',
-  //     'category': 'Web Dev',
-  //     'requester': 'Sarah Kim',
-  //     'rating': 4.6,
-  //     'skills': ['React', 'CSS', 'JavaScript'],
-  //     'bids': 3,
-  //   },
-  //   {
-  //     'title': 'Data Analysis Project',
-  //     'description': 'Statistical analysis using Python pandas...',
-  //     'tokens': 35,
-  //     'deadline': '3 days',
-  //     'category': 'Data Science',
-  //     'requester': 'Mike Johnson',
-  //     'rating': 4.2,
-  //     'skills': ['Python', 'Pandas'],
-  //     'bids': 7,
-  //   },
-  // ];
   void initState() {
     super.initState();
     // Fetch user when this screen loads
@@ -54,15 +24,51 @@ class _HomePageState extends State<HomePage> {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         Provider.of<UserProvider>(context, listen: false).fetchUser(user.uid);
+        fetchOnlyPosts(user.uid);
       }
     });
+  }
+
+  void fetchOnlyPosts(String userId) async {
+    try {
+      setState(() {
+        isLoadingPosts = true;
+      });
+
+      FirebaseFirestore firestore = FirebaseFirestore.instance;
+      QuerySnapshot snapshot = await firestore
+          .collection('posts')
+          .where('ownerId', isNotEqualTo: userId)
+          .get();
+      List<Map<String, dynamic>> posts = [];
+      for (QueryDocumentSnapshot doc in snapshot.docs) {
+        Map<String, dynamic> postData = doc.data() as Map<String, dynamic>;
+        postData['id'] = doc.id; // Add document ID
+        posts.add(postData);
+      }
+
+      setState(() {
+        featuredProjects = posts;
+        isLoadingPosts = false;
+      });
+    } catch (e) {
+      print('Error fetching posts: $e');
+      setState(() {
+        isLoadingPosts = false;
+      });
+      // Show error message to user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load projects. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-    final postprovider = Provider.of<PostProvider>(context);
-    final List<Map<String, dynamic>> featuredProjects = postprovider.posts;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -443,23 +449,16 @@ class _HomePageState extends State<HomePage> {
                   Icon(Icons.people, size: 14, color: Colors.grey[600]),
                   SizedBox(width: 4),
                   Text(
-                    '${project['bids']} bids',
+                    project['bids'] == null
+                        ? '0 bids'
+                        : '${project['bids']} bids',
                     style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                 ],
               ),
               ElevatedButton(
                 onPressed: () {
-                  // Handle bid action
-                  showBidDialog(
-                    context,
-                    project,
-                    onBidSubmitted: (bidData) {
-                      setState(() {
-                        project['bids'] = (project['bids'] as int) + 1;
-                      });
-                    },
-                  );
+                  _showBidDialog(project);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[600],
@@ -478,5 +477,141 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  void _showBidDialog(Map<String, dynamic> project) {
+    TextEditingController bidController = TextEditingController();
+    TextEditingController messageController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Submit Your Bid'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Project: ${project['title'] ?? "No Title"}'),
+              SizedBox(height: 16),
+              TextField(
+                controller: bidController,
+                decoration: InputDecoration(
+                  labelText: 'Your bid (tokens)',
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter your bid amount',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: messageController,
+                decoration: InputDecoration(
+                  labelText: 'Cover message',
+                  border: OutlineInputBorder(),
+                  hintText: 'Why should you be chosen for this project?',
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _submitBid(
+                  project,
+                  bidController.text,
+                  messageController.text,
+                );
+                Navigator.pop(context);
+              },
+              child: Text('Submit Bid'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _submitBid(
+    Map<String, dynamic> project,
+    String bidAmount,
+    String message,
+  ) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Please login to submit a bid')));
+        return;
+      }
+
+      if (bidAmount.isEmpty || int.tryParse(bidAmount) == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please enter a valid bid amount')),
+        );
+        return;
+      }
+
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+      // Create bid data
+      Map<String, dynamic> bidData = {
+        'bidderId': user.uid,
+        'bidderName':
+            '${userProvider.user!.firstname} ${userProvider.user!.lastname}',
+        'bidderEmail': user.email,
+        'bidAmount': int.parse(bidAmount),
+        'message': message,
+        'submittedAt': FieldValue.serverTimestamp(),
+        'status': 'pending', // pending, accepted, rejected
+      };
+
+      // Get project document ID (you'll need to store this in your project data)
+      String projectId =
+          project['id'] ?? project['postId']; // Make sure you have document ID
+
+      if (projectId.isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: Project ID not found')));
+        return;
+      }
+
+      // Add bid to the bids subcollection
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(projectId)
+          .collection('bids')
+          .add(bidData);
+
+      // Update the bid count in the main post document
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(projectId)
+          .update({'bids': FieldValue.increment(1)});
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Bid submitted successfully!')));
+
+      // Refresh posts to show updated bid count
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        fetchOnlyPosts(currentUser.uid);
+      }
+    } catch (e) {
+      print('Error submitting bid: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to submit bid. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
