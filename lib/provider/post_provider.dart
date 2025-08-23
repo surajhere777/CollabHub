@@ -21,9 +21,15 @@ class PostProvider with ChangeNotifier {
 
     _firestore.collection('posts').snapshots().listen((snapshot) {
       _posts = snapshot.docs.map((doc) {
+        final data = doc.data();
         return {
           'id': doc.id,
-          ...doc.data(),
+          'title': data['title'] ?? '', // ✅ fallback to empty string
+          'description': data['description'] ?? '',
+          'tokens': data['tokens'] ?? 0,
+          'deadline': data['deadline'] ?? '',
+          'skills': List<String>.from(data['skills'] ?? []),
+          'bids': data['bids'] ?? 0,
         };
       }).toList();
 

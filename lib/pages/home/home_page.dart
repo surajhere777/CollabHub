@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hackathonpro/pages/home/bid_now_page.dart';
 import 'package:hackathonpro/pages/home/find_work.dart';
 import 'package:hackathonpro/pages/post/post_page.dart';
+import 'package:hackathonpro/provider/post_provider.dart';
 import 'package:hackathonpro/provider/user_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -22,30 +23,30 @@ class _HomePageState extends State<HomePage> {
     'avatar': 'assets/avatar.png', // Add your asset
   };
 
-  final List<Map<String, dynamic>> featuredProjects = [
-    {
-      'title': 'Portfolio Website',
-      'description': 'Need a responsive portfolio site with React...',
-      'tokens': 50,
-      'deadline': '5 days',
-      'category': 'Web Dev',
-      'requester': 'Sarah Kim',
-      'rating': 4.6,
-      'skills': ['React', 'CSS', 'JavaScript'],
-      'bids': 3,
-    },
-    {
-      'title': 'Data Analysis Project',
-      'description': 'Statistical analysis using Python pandas...',
-      'tokens': 35,
-      'deadline': '3 days',
-      'category': 'Data Science',
-      'requester': 'Mike Johnson',
-      'rating': 4.2,
-      'skills': ['Python', 'Pandas'],
-      'bids': 7,
-    },
-  ];
+  // final List<Map<String, dynamic>> featuredProjects = [
+  //   {
+  //     'title': 'Portfolio Website',
+  //     'description': 'Need a responsive portfolio site with React...',
+  //     'tokens': 50,
+  //     'deadline': '5 days',
+  //     'category': 'Web Dev',
+  //     'requester': 'Sarah Kim',
+  //     'rating': 4.6,
+  //     'skills': ['React', 'CSS', 'JavaScript'],
+  //     'bids': 3,
+  //   },
+  //   {
+  //     'title': 'Data Analysis Project',
+  //     'description': 'Statistical analysis using Python pandas...',
+  //     'tokens': 35,
+  //     'deadline': '3 days',
+  //     'category': 'Data Science',
+  //     'requester': 'Mike Johnson',
+  //     'rating': 4.2,
+  //     'skills': ['Python', 'Pandas'],
+  //     'bids': 7,
+  //   },
+  // ];
   void initState() {
     super.initState();
     // Fetch user when this screen loads
@@ -60,6 +61,8 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
+    final postprovider = Provider.of<PostProvider>(context);
+    final List<Map<String, dynamic>> featuredProjects = postprovider.posts;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -124,7 +127,7 @@ class _HomePageState extends State<HomePage> {
             SizedBox(height: 24),
 
             // Featured projects
-            _buildFeaturedProjects(),
+            _buildFeaturedProjects(featuredProjects),
           ],
         ),
       ),
@@ -317,7 +320,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildFeaturedProjects() {
+  Widget _buildFeaturedProjects(List<Map<String, dynamic>> projects) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -342,7 +345,7 @@ class _HomePageState extends State<HomePage> {
         ),
         SizedBox(height: 12),
         Column(
-          children: featuredProjects
+          children: projects
               .map((project) => _buildProjectCard(project))
               .toList(),
         ),
@@ -408,7 +411,7 @@ class _HomePageState extends State<HomePage> {
           SizedBox(height: 12),
           Wrap(
             spacing: 6,
-            children: (project['skills'] as List<String>)
+            children: (project['skills'] as List<dynamic>)
                 .map(
                   (skill) => Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
