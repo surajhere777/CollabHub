@@ -34,7 +34,7 @@ class PostProvider with ChangeNotifier {
           'postedTime': data['postedTime'].toString(),
           'difficulty': data['difficulty'] ?? 'Beginner',
           'urgency': data['urgency'] ?? 'Normal',
-          // 'ownerId': data['ownerId'] ?? '',
+          'ownerId': data['ownerId'] ?? '',
         };
       }).toList();
 

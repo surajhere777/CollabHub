@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hackathonpro/pages/work/project_bid.dart';
+// import 'package:provider/provider.dart';
+// import 'package:hackathonpro/provider/post_provider.dart';
+// import 'package:hackathonpro/provider/user_provider.dart';
 
 class MyWorkPage extends StatefulWidget {
   @override
@@ -9,10 +15,17 @@ class _MyWorkPageState extends State<MyWorkPage>
     with SingleTickerProviderStateMixin {
   TabController? _tabController;
 
+  // Firebase data streams
+  List<Map<String, dynamic>> myProjects = [];
+  List<Map<String, dynamic>> myBids = [];
+  bool isLoadingProjects = true;
+  bool isLoadingBids = true;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _fetchMyData();
   }
 
   @override
@@ -21,65 +34,124 @@ class _MyWorkPageState extends State<MyWorkPage>
     super.dispose();
   }
 
-  // Sample data - replace with your actual data
-  final List<Map<String, dynamic>> myProjects = [
-    {
-      'title': 'Website Design for Restaurant',
-      'tokens': 60,
-      'bids': 8,
-      'status': 'active',
-      'posted': '2 days ago',
-      'deadline': '1 week',
-    },
-    {
-      'title': 'Data Analysis Project',
-      'tokens': 45,
-      'bids': 3,
-      'status': 'in_progress',
-      'posted': '1 week ago',
-      'deadline': '3 days',
-      'assignedTo': 'Sarah Kim',
-    },
-    {
-      'title': 'Mobile App UI Design',
-      'tokens': 80,
-      'bids': 0,
-      'status': 'completed',
-      'posted': '3 weeks ago',
-      'completedDate': '5 days ago',
-      'assignedTo': 'Mike Chen',
-    },
-  ];
+  // Fetch user's projects and bids from Firebase
+  void _fetchMyData() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _fetchMyProjects(user.uid);
+      _fetchMyBids(user.uid);
+    }
+  }
 
-  final List<Map<String, dynamic>> myBids = [
-    {
-      'title': 'E-commerce Website',
-      'myBid': 75,
-      'totalBids': 12,
-      'status': 'pending',
-      'bidDate': '1 day ago',
-      'deadline': '2 weeks',
-      'client': 'Alex Johnson',
-    },
-    {
-      'title': 'Logo Design',
-      'myBid': 35,
-      'totalBids': 6,
-      'status': 'accepted',
-      'bidDate': '3 days ago',
-      'deadline': '1 week',
-      'client': 'Emma Davis',
-    },
-    {
-      'title': 'Python Script',
-      'myBid': 25,
-      'totalBids': 15,
-      'status': 'rejected',
-      'bidDate': '1 week ago',
-      'deadline': 'Not specified',
-      'client': 'John Smith',
-    },
-  ];
+  // Fetch projects posted by the current user
+  void _fetchMyProjects(String userId) {
+    FirebaseFirestore.instance
+        .collection('posts')
+        .where('ownerId', isEqualTo: userId)
+        .snapshots()
+        .listen((snapshot) {
+          setState(() {
+            myProjects = snapshot.docs.map((doc) {
+              final data = doc.data();
+              return {
+                'id': doc.id,
+                'title': data['title'] ?? '',
+                'tokens': data['tokens'] ?? 0,
+                'bids': data['bids'] ?? 0,
+                'status': data['status'] ?? 'active',
+                'posted': _formatDate(data['postedTime']),
+                'deadline': data['deadline'] ?? '',
+                'category': data['category'] ?? '',
+                'description': data['description'] ?? '',
+                'assignedTo': data['assignedTo'],
+                'completedDate': data['completedDate'],
+              };
+            }).toList();
+            isLoadingProjects = false;
+          });
+        });
+  }
+
+  // Fetch bids placed by the current user
+  void _fetchMyBids(String userId) async {
+    try {
+      // Get all posts first
+      QuerySnapshot postsSnapshot = await FirebaseFirestore.instance
+          .collection('posts')
+          .get();
+
+      List<Map<String, dynamic>> userBids = [];
+
+      // For each post, check if user has placed a bid
+      for (QueryDocumentSnapshot postDoc in postsSnapshot.docs) {
+        QuerySnapshot bidsSnapshot = await FirebaseFirestore.instance
+            .collection('posts')
+            .doc(postDoc.id)
+            .collection('bids')
+            .where('bidderId', isEqualTo: userId)
+            .get();
+
+        for (QueryDocumentSnapshot bidDoc in bidsSnapshot.docs) {
+          final postData = postDoc.data() as Map<String, dynamic>;
+          final bidData = bidDoc.data() as Map<String, dynamic>;
+
+          userBids.add({
+            'bidId': bidDoc.id,
+            'projectId': postDoc.id,
+            'title': postData['title'] ?? '',
+            'myBid': bidData['bidAmount'] ?? 0,
+            'totalBids': postData['bids'] ?? 0,
+            'status': bidData['status'] ?? 'pending',
+            'bidDate': _formatDate(bidData['submittedAt']),
+            'deadline': postData['deadline'] ?? '',
+            'client': bidData['clientName'] ?? 'Unknown Client',
+            'message': bidData['message'] ?? '',
+          });
+        }
+      }
+
+      setState(() {
+        myBids = userBids;
+        isLoadingBids = false;
+      });
+    } catch (e) {
+      print('Error fetching bids: $e');
+      setState(() {
+        isLoadingBids = false;
+      });
+    }
+  }
+
+  // Format timestamp for display
+  String _formatDate(dynamic timestamp) {
+    if (timestamp == null) return 'Unknown';
+
+    try {
+      DateTime date;
+      if (timestamp is Timestamp) {
+        date = timestamp.toDate();
+      } else if (timestamp is String) {
+        date = DateTime.parse(timestamp);
+      } else {
+        return 'Unknown';
+      }
+
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays > 7) {
+        return '${difference.inDays ~/ 7} week${difference.inDays ~/ 7 > 1 ? 's' : ''} ago';
+      } else if (difference.inDays > 0) {
+        return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (e) {
+      return 'Unknown';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,8 +170,20 @@ class _MyWorkPageState extends State<MyWorkPage>
           unselectedLabelColor: Colors.grey[600],
           indicatorColor: Colors.blue[600],
           tabs: [
-            Tab(text: 'My Projects'),
-            Tab(text: 'My Bids'),
+            Tab(
+              text: 'My Projects',
+              icon: Badge(
+                label: Text('${myProjects.length}'),
+                child: Icon(Icons.work_outline),
+              ),
+            ),
+            Tab(
+              text: 'My Bids',
+              icon: Badge(
+                label: Text('${myBids.length}'),
+                child: Icon(Icons.gavel),
+              ),
+            ),
           ],
         ),
       ),
@@ -111,6 +195,10 @@ class _MyWorkPageState extends State<MyWorkPage>
   }
 
   Widget _buildMyProjects() {
+    if (isLoadingProjects) {
+      return Center(child: CircularProgressIndicator());
+    }
+
     if (myProjects.isEmpty) {
       return _buildEmptyState(
         'No Projects Yet',
@@ -118,21 +206,30 @@ class _MyWorkPageState extends State<MyWorkPage>
         Icons.work_outline,
         'Post Project',
         () {
-          // Navigate to post project page
+          Navigator.pushNamed(context, '/post-project');
         },
       );
     }
 
-    return ListView.builder(
-      padding: EdgeInsets.all(16),
-      itemCount: myProjects.length,
-      itemBuilder: (context, index) {
-        return _buildProjectCard(myProjects[index]);
+    return RefreshIndicator(
+      onRefresh: () async {
+        _fetchMyData();
       },
+      child: ListView.builder(
+        padding: EdgeInsets.all(16),
+        itemCount: myProjects.length,
+        itemBuilder: (context, index) {
+          return _buildProjectCard(myProjects[index]);
+        },
+      ),
     );
   }
 
   Widget _buildMyBids() {
+    if (isLoadingBids) {
+      return Center(child: CircularProgressIndicator());
+    }
+
     if (myBids.isEmpty) {
       return _buildEmptyState(
         'No Bids Yet',
@@ -140,17 +237,22 @@ class _MyWorkPageState extends State<MyWorkPage>
         Icons.gavel,
         'Browse Projects',
         () {
-          // Navigate to browse page
+          Navigator.pushNamed(context, '/browse-projects');
         },
       );
     }
 
-    return ListView.builder(
-      padding: EdgeInsets.all(16),
-      itemCount: myBids.length,
-      itemBuilder: (context, index) {
-        return _buildBidCard(myBids[index]);
+    return RefreshIndicator(
+      onRefresh: () async {
+        _fetchMyData();
       },
+      child: ListView.builder(
+        padding: EdgeInsets.all(16),
+        itemCount: myBids.length,
+        itemBuilder: (context, index) {
+          return _buildBidCard(myBids[index]);
+        },
+      ),
     );
   }
 
@@ -202,7 +304,7 @@ class _MyWorkPageState extends State<MyWorkPage>
               _buildInfoItem(
                 Icons.access_time,
                 project['status'] == 'completed'
-                    ? 'Completed ${project['completedDate']}'
+                    ? 'Completed ${project['completedDate'] ?? 'recently'}'
                     : project['deadline'],
                 Colors.orange,
               ),
@@ -314,6 +416,7 @@ class _MyWorkPageState extends State<MyWorkPage>
     );
   }
 
+  // Status chip builders remain the same
   Widget _buildStatusChip(String status) {
     Color color;
     String text;
@@ -330,6 +433,10 @@ class _MyWorkPageState extends State<MyWorkPage>
       case 'completed':
         color = Colors.green;
         text = 'Completed';
+        break;
+      case 'assigned':
+        color = Colors.purple;
+        text = 'Assigned';
         break;
       default:
         color = Colors.grey;
@@ -406,24 +513,26 @@ class _MyWorkPageState extends State<MyWorkPage>
   Widget _buildProjectAction(Map<String, dynamic> project) {
     switch (project['status']) {
       case 'active':
-        return TextButton(
-          onPressed: () {
-            // View bids
-          },
-          child: Text('View Bids (${project['bids']})'),
+        return ElevatedButton(
+          onPressed: () => _viewProjectBids(project),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue[600],
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          ),
+          child: Text(
+            'View Bids (${project['bids']})',
+            style: TextStyle(fontSize: 12, color: Colors.white),
+          ),
         );
       case 'in_progress':
+      case 'assigned':
         return TextButton(
-          onPressed: () {
-            // View progress
-          },
+          onPressed: () => _viewProjectProgress(project),
           child: Text('View Progress'),
         );
       case 'completed':
         return TextButton(
-          onPressed: () {
-            // View details
-          },
+          onPressed: () => _viewProjectDetails(project),
           child: Text('View Details'),
         );
       default:
@@ -434,18 +543,21 @@ class _MyWorkPageState extends State<MyWorkPage>
   Widget _buildBidAction(Map<String, dynamic> bid) {
     switch (bid['status']) {
       case 'pending':
-        return TextButton(
-          onPressed: () {
-            // Edit bid or withdraw
-          },
-          child: Text('Edit Bid'),
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton(onPressed: () => _editBid(bid), child: Text('Edit')),
+            TextButton(
+              onPressed: () => _withdrawBid(bid),
+              child: Text('Withdraw', style: TextStyle(color: Colors.red)),
+            ),
+          ],
         );
       case 'accepted':
-        return TextButton(
-          onPressed: () {
-            // Start work
-          },
-          child: Text('Start Work'),
+        return ElevatedButton(
+          onPressed: () => _startWork(bid),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          child: Text('Start Work', style: TextStyle(color: Colors.white)),
         );
       case 'rejected':
         return Text(
@@ -455,6 +567,204 @@ class _MyWorkPageState extends State<MyWorkPage>
       default:
         return SizedBox.shrink();
     }
+  }
+
+  // Action methods
+  void _viewProjectBids(Map<String, dynamic> project) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProjectBidsPage(
+          projectId: project['id'],
+          projectTitle: project['title'],
+        ),
+      ),
+    );
+  }
+
+  void _viewProjectProgress(Map<String, dynamic> project) {
+    // Navigate to project progress page
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Project Progress'),
+        content: Text('Progress tracking feature coming soon!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _viewProjectDetails(Map<String, dynamic> project) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(project['title']),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Status: ${project['status']}'),
+            Text('Tokens: ${project['tokens']}'),
+            Text('Total Bids: ${project['bids']}'),
+            if (project['assignedTo'] != null)
+              Text('Assigned to: ${project['assignedTo']}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editBid(Map<String, dynamic> bid) {
+    TextEditingController bidController = TextEditingController(
+      text: bid['myBid'].toString(),
+    );
+    TextEditingController messageController = TextEditingController(
+      text: bid['message'],
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit Bid'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: bidController,
+              decoration: InputDecoration(labelText: 'Bid Amount'),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 16),
+            TextField(
+              controller: messageController,
+              decoration: InputDecoration(labelText: 'Message'),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await _updateBid(bid, bidController.text, messageController.text);
+              Navigator.pop(context);
+            },
+            child: Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateBid(
+    Map<String, dynamic> bid,
+    String newAmount,
+    String newMessage,
+  ) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(bid['projectId'])
+          .collection('bids')
+          .doc(bid['bidId'])
+          .update({
+            'bidAmount': int.parse(newAmount),
+            'message': newMessage,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+      _fetchMyData(); // Refresh data
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Bid updated successfully!')));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to update bid: $e')));
+    }
+  }
+
+  void _withdrawBid(Map<String, dynamic> bid) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Withdraw Bid'),
+        content: Text('Are you sure you want to withdraw this bid?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await _deleteBid(bid);
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('Withdraw', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteBid(Map<String, dynamic> bid) async {
+    try {
+      // Delete the bid
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(bid['projectId'])
+          .collection('bids')
+          .doc(bid['bidId'])
+          .delete();
+
+      // Decrease bid count
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(bid['projectId'])
+          .update({'bids': FieldValue.increment(-1)});
+
+      _fetchMyData(); // Refresh data
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Bid withdrawn successfully!')));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to withdraw bid: $e')));
+    }
+  }
+
+  void _startWork(Map<String, dynamic> bid) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Start Work'),
+        content: Text(
+          'Congratulations! You can now start working on this project.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildEmptyState(
