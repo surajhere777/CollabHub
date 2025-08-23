@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hackathonpro/auth/login_page.dart';
 import 'package:hackathonpro/auth/sign_in.dart';
@@ -25,7 +26,9 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: SignUpPage(),
+      home: FirebaseAuth.instance.currentUser != null
+          ? MainNavigator()
+          : SignUpPage(),
       // Define your routes here
       // initialRoute: '/',
       // routes: {

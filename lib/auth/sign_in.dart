@@ -1,4 +1,5 @@
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hackathonpro/auth/login_page.dart';
@@ -19,16 +20,38 @@ class _SignUpPageState extends State<SignUpPage>
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
-  
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   bool _acceptTerms = false;
   bool _receiveUpdates = false;
-  
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+
+  Future<void> createUserWithEmailAndPassword() async {
+    // Implement your user creation logic here
+    try {
+      final userCred = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          )
+          .then((UserCredential user) {
+            // User created successfully
+            print("User created: ${user.user?.uid}");
+          })
+          .catchError((error) {
+            // Handle errors here
+            print("Error creating user: $error");
+          });
+      _handleSignUp();
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
 
   @override
   void initState() {
@@ -37,23 +60,19 @@ class _SignUpPageState extends State<SignUpPage>
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    ));
-    
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
     _animationController.forward();
   }
 
@@ -71,23 +90,13 @@ class _SignUpPageState extends State<SignUpPage>
 
   Future<void> _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
-      if (!_acceptTerms) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please accept the Terms and Conditions'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
-
       setState(() => _isLoading = true);
-      
+
       // Simulate API call
       await Future.delayed(const Duration(seconds: 2));
-      
+
       setState(() => _isLoading = false);
-      
+
       // Handle successful sign up
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -106,10 +115,7 @@ class _SignUpPageState extends State<SignUpPage>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF667eea),
-              Color(0xFF764ba2),
-            ],
+            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
           ),
         ),
         child: SafeArea(
@@ -208,10 +214,7 @@ class _SignUpPageState extends State<SignUpPage>
         const SizedBox(height: 8),
         Text(
           'Sign up to get started with your account',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           textAlign: TextAlign.center,
         ),
       ],
@@ -241,7 +244,10 @@ class _SignUpPageState extends State<SignUpPage>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+                borderSide: const BorderSide(
+                  color: Color(0xFF667eea),
+                  width: 2,
+                ),
               ),
             ),
             validator: (value) {
@@ -273,7 +279,10 @@ class _SignUpPageState extends State<SignUpPage>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+                borderSide: const BorderSide(
+                  color: Color(0xFF667eea),
+                  width: 2,
+                ),
               ),
             ),
             validator: (value) {
@@ -450,101 +459,14 @@ class _SignUpPageState extends State<SignUpPage>
     );
   }
 
-  Widget _buildCheckboxes() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Checkbox(
-              value: _acceptTerms,
-              onChanged: (value) {
-                setState(() {
-                  _acceptTerms = value ?? false;
-                });
-              },
-              activeColor: const Color(0xFF667eea),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _acceptTerms = !_acceptTerms;
-                  });
-                },
-                child: RichText(
-                  text: TextSpan(
-                    style: TextStyle(color: Colors.grey[700], fontSize: 14),
-                    children: [
-                      const TextSpan(text: 'I agree to the '),
-                      TextSpan(
-                        text: 'Terms and Conditions',
-                        style: TextStyle(
-                          color: const Color(0xFF667eea),
-                          fontWeight: FontWeight.w500,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                      const TextSpan(text: ' and '),
-                      TextSpan(
-                        text: 'Privacy Policy',
-                        style: TextStyle(
-                          color: const Color(0xFF667eea),
-                          fontWeight: FontWeight.w500,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            Checkbox(
-              value: _receiveUpdates,
-              onChanged: (value) {
-                setState(() {
-                  _receiveUpdates = value ?? false;
-                });
-              },
-              activeColor: const Color(0xFF667eea),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _receiveUpdates = !_receiveUpdates;
-                  });
-                },
-                child: Text(
-                  'I want to receive updates and promotions',
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   Widget _buildSignUpButton() {
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleSignUp,
+        onPressed: () {
+          createUserWithEmailAndPassword();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF667eea),
           foregroundColor: Colors.white,
@@ -565,10 +487,7 @@ class _SignUpPageState extends State<SignUpPage>
               )
             : const Text(
                 'Create Account',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
       ),
     );
@@ -592,6 +511,7 @@ class _SignUpPageState extends State<SignUpPage>
       ],
     );
   }
+
   Widget _buildLoginPrompt() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -602,9 +522,14 @@ class _SignUpPageState extends State<SignUpPage>
         ),
         TextButton(
           onPressed: () {
-            Navigator.push(context,MaterialPageRoute(builder: (context){
-              return LoginPage();
-            })); // Navigate back to login
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  return LoginPage();
+                },
+              ),
+            ); // Navigate back to login
           },
           child: const Text(
             'Sign In',

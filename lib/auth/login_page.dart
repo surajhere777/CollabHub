@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hackathonpro/auth/sign_in.dart';
+import 'package:hackathonpro/pages/home/home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -70,6 +72,36 @@ class _LoginPageState extends State<LoginPage>
         ),
       );
     }
+  }
+
+  Future<void> loginWithEmailandPassword() async {
+    // Navigate to sign up page
+    FirebaseAuth.instance
+        .signInWithEmailAndPassword(
+          email: _emailController.text,
+          password: _passwordController.text,
+        )
+        .then((userCredential) {
+          // Handle successful login
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) {
+                return HomePage();
+              },
+            ),
+          );
+          _isLoading ? null : _handleLogin;
+        })
+        .catchError((error) {
+          // Handle errors here
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Login failed: ${error.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        });
   }
 
   @override
@@ -261,7 +293,9 @@ class _LoginPageState extends State<LoginPage>
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleLogin,
+        onPressed: () {
+          loginWithEmailandPassword();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF667eea),
           foregroundColor: Colors.white,
@@ -318,9 +352,14 @@ class _LoginPageState extends State<LoginPage>
         TextButton(
           onPressed: () {
             // Navigate to sign up page
-            Navigator.push(context,MaterialPageRoute(builder: (context){
-              return SignUpPage();
-            }));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  return SignUpPage();
+                },
+              ),
+            );
           },
           child: const Text(
             'Sign Up',
