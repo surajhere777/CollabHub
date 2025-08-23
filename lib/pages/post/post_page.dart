@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hackathonpro/provider/user_provider.dart';
+import 'package:provider/provider.dart';
 
 class PostProjectPage extends StatefulWidget {
   @override
@@ -930,6 +932,7 @@ class _PostProjectPageState extends State<PostProjectPage> {
       },
     );
   }
+
   void _postProject() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -956,7 +959,14 @@ class _PostProjectPageState extends State<PostProjectPage> {
         "notes": _additionalNotesController.text.trim(),
         "attachments": _attachments,
         "ownerId": user.uid, // Who created the post
-        "createdAt": FieldValue.serverTimestamp(),
+        "postedTime": FieldValue.serverTimestamp(),
+        "difficulty": _selectedSkills.length <= 2
+            ? 'Beginner'
+            : _selectedSkills.length <= 5
+            ? 'Intermediate'
+            : 'Expert',
+        "isUrgent": _selectedUrgency == 'Urgent',
+        "bids": 0,
       };
 
       // Save to Firestore

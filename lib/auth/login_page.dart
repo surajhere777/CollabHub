@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hackathonpro/auth/sign_in.dart';
 import 'package:hackathonpro/main.dart';
 import 'package:hackathonpro/provider/user_provider.dart';
@@ -115,15 +116,9 @@ class _LoginPageState extends State<LoginPage>
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
           );
-
-      // fetch Firestore user into provider
       await context.read<UserProvider>().fetchUser(userCredential.user!.uid);
 
-      // navigate to main
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => MainNavigator()),
-      );
+      if (mounted) context.go('/');
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

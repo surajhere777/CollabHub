@@ -30,6 +30,10 @@ class PostProvider with ChangeNotifier {
           'deadline': data['deadline'] ?? '',
           'skills': List<String>.from(data['skills'] ?? []),
           'bids': data['bids'] ?? 0,
+          'category': data['category'] ?? '',
+          'postedTime': data['postedTime'].toString(),
+          'difficulty': data['difficulty'] ?? 'Beginner',
+          'urgency': data['urgency'] ?? 'Normal',
         };
       }).toList();
 

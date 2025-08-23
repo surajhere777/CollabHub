@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hackathonpro/provider/post_provider.dart';
+import 'package:provider/provider.dart';
 
 class BrowseProjectsPage extends StatefulWidget {
   @override
@@ -48,85 +50,89 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
   ];
 
   // Sample projects data - replace with your actual data
-  List<Map<String, dynamic>> allProjects = [
-    {
-      'id': 1,
-      'title': 'E-commerce Website Development',
-      'description':
-          'Need a full-stack e-commerce site with payment integration, user authentication, and admin panel.',
-      'tokens': 120,
-      'deadline': '2 weeks',
-      'category': 'Web Development',
-      'requester': 'Sarah Kim',
-      'requesterRating': 4.8,
-      'skills': ['React', 'Node.js', 'JavaScript'],
-      'bids': 5,
-      'postedDate': '2024-01-20',
-      'urgency': 'medium',
-    },
-    {
-      'id': 2,
-      'title': 'Mobile App UI/UX Design',
-      'description':
-          'Design complete UI/UX for fitness tracking mobile app. Need wireframes, mockups, and prototypes.',
-      'tokens': 80,
-      'deadline': '1 week',
-      'category': 'Design',
-      'requester': 'Mike Johnson',
-      'requesterRating': 4.6,
-      'skills': ['Figma', 'UI/UX', 'Mobile'],
-      'bids': 12,
-      'postedDate': '2024-01-22',
-      'urgency': 'high',
-    },
-    {
-      'id': 3,
-      'title': 'Data Analysis for Marketing Campaign',
-      'description':
-          'Analyze customer data and create insights report with visualizations for marketing strategy.',
-      'tokens': 60,
-      'deadline': '5 days',
-      'category': 'Data Science',
-      'requester': 'Emma Davis',
-      'requesterRating': 4.9,
-      'skills': ['Python', 'Data Analysis'],
-      'bids': 8,
-      'postedDate': '2024-01-21',
-      'urgency': 'high',
-    },
-    {
-      'id': 4,
-      'title': 'Blog Content Writing',
-      'description':
-          'Write 5 SEO-optimized blog posts about sustainable living. Each post should be 1500+ words.',
-      'tokens': 45,
-      'deadline': '1 week',
-      'category': 'Writing',
-      'requester': 'Alex Chen',
-      'requesterRating': 4.3,
-      'skills': ['Writing', 'SEO'],
-      'bids': 15,
-      'postedDate': '2024-01-19',
-      'urgency': 'low',
-    },
-    {
-      'id': 5,
-      'title': 'Flutter Mobile App Development',
-      'description':
-          'Build a cross-platform mobile app for task management with Firebase integration.',
-      'tokens': 100,
-      'deadline': '3 weeks',
-      'category': 'Mobile Development',
-      'requester': 'John Smith',
-      'requesterRating': 4.7,
-      'skills': ['Flutter', 'Firebase', 'Mobile'],
-      'bids': 3,
-      'postedDate': '2024-01-23',
-      'urgency': 'medium',
-    },
-  ];
+  // List<Map<String, dynamic>> allProjects = [
+  //   {
+  //     'id': 1,
+  //     'title': 'E-commerce Website Development',
+  //     'description':
+  //         'Need a full-stack e-commerce site with payment integration, user authentication, and admin panel.',
+  //     'tokens': 120,
+  //     'deadline': '2 weeks',
+  //     'category': 'Web Development',
+  //     'requester': 'Sarah Kim',
+  //     'requesterRating': 4.8,
+  //     'skills': ['React', 'Node.js', 'JavaScript'],
+  //     'bids': 5,
+  //     'postedDate': '2024-01-20',
+  //     'urgency': 'medium',
+  //   },
+  //   {
+  //     'id': 2,
+  //     'title': 'Mobile App UI/UX Design',
+  //     'description':
+  //         'Design complete UI/UX for fitness tracking mobile app. Need wireframes, mockups, and prototypes.',
+  //     'tokens': 80,
+  //     'deadline': '1 week',
+  //     'category': 'Design',
+  //     'requester': 'Mike Johnson',
+  //     'requesterRating': 4.6,
+  //     'skills': ['Figma', 'UI/UX', 'Mobile'],
+  //     'bids': 12,
+  //     'postedDate': '2024-01-22',
+  //     'urgency': 'high',
+  //   },
+  //   {
+  //     'id': 3,
+  //     'title': 'Data Analysis for Marketing Campaign',
+  //     'description':
+  //         'Analyze customer data and create insights report with visualizations for marketing strategy.',
+  //     'tokens': 60,
+  //     'deadline': '5 days',
+  //     'category': 'Data Science',
+  //     'requester': 'Emma Davis',
+  //     'requesterRating': 4.9,
+  //     'skills': ['Python', 'Data Analysis'],
+  //     'bids': 8,
+  //     'postedDate': '2024-01-21',
+  //     'urgency': 'high',
+  //   },
+  //   {
+  //     'id': 4,
+  //     'title': 'Blog Content Writing',
+  //     'description':
+  //         'Write 5 SEO-optimized blog posts about sustainable living. Each post should be 1500+ words.',
+  //     'tokens': 45,
+  //     'deadline': '1 week',
+  //     'category': 'Writing',
+  //     'requester': 'Alex Chen',
+  //     'requesterRating': 4.3,
+  //     'skills': ['Writing', 'SEO'],
+  //     'bids': 15,
+  //     'postedDate': '2024-01-19',
+  //     'urgency': 'low',
+  //   },
+  //   {
+  //     'id': 5,
+  //     'title': 'Flutter Mobile App Development',
+  //     'description':
+  //         'Build a cross-platform mobile app for task management with Firebase integration.',
+  //     'tokens': 100,
+  //     'deadline': '3 weeks',
+  //     'category': 'Mobile Development',
+  //     'requester': 'John Smith',
+  //     'requesterRating': 4.7,
+  //     'skills': ['Flutter', 'Firebase', 'Mobile'],
+  //     'bids': 3,
+  //     'postedDate': '2024-01-23',
+  //     'urgency': 'medium',
+  //   },
+  // ];
 
-  List<Map<String, dynamic>> get filteredProjects {
+  List<Map<String, dynamic>> allProjects =
+      []; // Assume this gets populated from an API or database
+  List<Map<String, dynamic>> getfilteredProjects(
+    List<Map<String, dynamic>> allProjects,
+  ) {
     List<Map<String, dynamic>> filtered = List.from(allProjects);
 
     // Filter by search
@@ -180,7 +186,7 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
         filtered.sort((a, b) => b['bids'].compareTo(a['bids']));
         break;
       case 'oldest':
-        filtered.sort((a, b) => a['postedDate'].compareTo(b['postedDate']));
+        filtered.sort((a, b) => a['postedTime'].compareTo(b['postedTime']));
         break;
       case 'deadline':
         // Sort by urgency (high, medium, low)
@@ -192,7 +198,7 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
         );
         break;
       default: // newest
-        filtered.sort((a, b) => b['postedDate'].compareTo(a['postedDate']));
+        filtered.sort((a, b) => b['postedTime'].compareTo(a['postedTime']));
     }
 
     return filtered;
@@ -200,6 +206,9 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final postProvider = Provider.of<PostProvider>(context);
+    final List<Map<String, dynamic>> allProjects = postProvider.posts;
+    final filteredProjects = getfilteredProjects(allProjects);
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -225,7 +234,7 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
           _buildQuickFilters(),
 
           // Results count and sort
-          _buildResultsHeader(),
+          _buildResultsHeader(filteredProjects),
 
           // Projects list
           Expanded(
@@ -309,7 +318,7 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
     );
   }
 
-  Widget _buildResultsHeader() {
+  Widget _buildResultsHeader(List<Map<String, dynamic>> filteredProjects) {
     return Container(
       color: Colors.white,
       padding: EdgeInsets.all(16),
@@ -480,35 +489,6 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
                         Icons.person,
                         size: 14,
                         color: Colors.grey[600],
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            project['requester'],
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey[800],
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              Icon(Icons.star, size: 12, color: Colors.amber),
-                              SizedBox(width: 2),
-                              Text(
-                                '${project['requesterRating']}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
                       ),
                     ),
                   ],

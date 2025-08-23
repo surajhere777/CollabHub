@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hackathonpro/provider/post_provider.dart';
+import 'package:provider/provider.dart';
 
 class FindWorkPage extends StatefulWidget {
+  const FindWorkPage({Key? key}) : super(key: key);
   @override
   _FindWorkPageState createState() => _FindWorkPageState();
 }
@@ -13,8 +16,8 @@ class _FindWorkPageState extends State<FindWorkPage> {
 
   final List<String> categories = [
     'All',
-    'Web Dev',
-    'Mobile Dev',
+    'Web Development',
+    'Mobile Development',
     'Data Science',
     'Design',
     'Writing',
@@ -31,120 +34,15 @@ class _FindWorkPageState extends State<FindWorkPage> {
     'Fewest Bids',
   ];
 
-  final List<Map<String, dynamic>> projects = [
-    {
-      'id': '1',
-      'title': 'E-commerce Website Development',
-      'description':
-          'Need a full-stack e-commerce website with payment integration, user authentication, and admin panel. Must be responsive and SEO optimized.',
-      'tokens': 120,
-      'deadline': '2 weeks',
-      'category': 'Web Dev',
-      'requester': 'TechStart Inc.',
-      'requesterRating': 4.8,
-      'skills': ['React', 'Node.js', 'MongoDB', 'Stripe'],
-      'bids': 5,
-      'postedTime': '2 hours ago',
-      'difficulty': 'Advanced',
-      'isUrgent': true,
-    },
-    {
-      'id': '2',
-      'title': 'Mobile App UI/UX Design',
-      'description':
-          'Looking for a creative designer to create modern UI/UX for a fitness tracking mobile app. Need wireframes, prototypes, and final designs.',
-      'tokens': 75,
-      'deadline': '1 week',
-      'category': 'Design',
-      'requester': 'FitLife Apps',
-      'requesterRating': 4.6,
-      'skills': ['Figma', 'Adobe XD', 'UI Design', 'UX Research'],
-      'bids': 12,
-      'postedTime': '5 hours ago',
-      'difficulty': 'Intermediate',
-      'isUrgent': false,
-    },
-    {
-      'id': '3',
-      'title': 'Data Analysis & Visualization',
-      'description':
-          'Analyze sales data and create interactive dashboards. Need someone experienced with Python, pandas, and data visualization tools.',
-      'tokens': 85,
-      'deadline': '5 days',
-      'category': 'Data Science',
-      'requester': 'DataCorp Solutions',
-      'requesterRating': 4.9,
-      'skills': ['Python', 'Pandas', 'Matplotlib', 'Tableau'],
-      'bids': 3,
-      'postedTime': '1 day ago',
-      'difficulty': 'Intermediate',
-      'isUrgent': false,
-    },
-    {
-      'id': '4',
-      'title': 'Flutter Mobile App Development',
-      'description':
-          'Build a cross-platform mobile app for food delivery. Need clean code, proper state management, and integration with APIs.',
-      'tokens': 150,
-      'deadline': '3 weeks',
-      'category': 'Mobile Dev',
-      'requester': 'FoodieExpress',
-      'requesterRating': 4.7,
-      'skills': ['Flutter', 'Dart', 'Firebase', 'REST API'],
-      'bids': 8,
-      'postedTime': '3 hours ago',
-      'difficulty': 'Advanced',
-      'isUrgent': true,
-    },
-    {
-      'id': '5',
-      'title': 'Content Writing for Tech Blog',
-      'description':
-          'Need 10 high-quality articles about emerging technologies. Must be SEO optimized and well-researched.',
-      'tokens': 40,
-      'deadline': '2 weeks',
-      'category': 'Writing',
-      'requester': 'TechInsights Media',
-      'requesterRating': 4.5,
-      'skills': ['Technical Writing', 'SEO', 'Research'],
-      'bids': 15,
-      'postedTime': '6 hours ago',
-      'difficulty': 'Beginner',
-      'isUrgent': false,
-    },
-    {
-      'id': '6',
-      'title': 'Social Media Marketing Campaign',
-      'description':
-          'Create and execute a comprehensive social media strategy for a startup. Includes content creation and ad management.',
-      'tokens': 95,
-      'deadline': '1 month',
-      'category': 'Marketing',
-      'requester': 'StartupGrow',
-      'requesterRating': 4.4,
-      'skills': ['Social Media', 'Content Creation', 'Analytics'],
-      'bids': 7,
-      'postedTime': '4 hours ago',
-      'difficulty': 'Intermediate',
-      'isUrgent': false,
-    },
-  ];
-
-  List<Map<String, dynamic>> get filteredProjects {
+  List<Map<String, dynamic>> getfilteredProjects(
+    List<Map<String, dynamic>> projects,
+  ) {
     List<Map<String, dynamic>> filtered = projects.where((project) {
       bool matchesCategory =
-          selectedCategory == 'All' || project['category'] == selectedCategory;
-      bool matchesSearch =
-          searchQuery.isEmpty ||
-          project['title'].toLowerCase().contains(searchQuery.toLowerCase()) ||
-          project['description'].toLowerCase().contains(
-            searchQuery.toLowerCase(),
-          ) ||
-          (project['skills'] as List<String>).any(
-            (skill) => skill.toLowerCase().contains(searchQuery.toLowerCase()),
-          );
-
-      return matchesCategory && matchesSearch;
+          selectedCategory == 'All' ||
+          project['category'].toString().toLowerCase() ==
+              selectedCategory.toLowerCase();
+      return matchesCategory;
     }).toList();
 
     // Sort projects
@@ -176,6 +74,8 @@ class _FindWorkPageState extends State<FindWorkPage> {
 
   @override
   Widget build(BuildContext context) {
+    final postProvider = Provider.of<PostProvider>(context);
+    final List<Map<String, dynamic>> projects = postProvider.posts;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -288,7 +188,7 @@ class _FindWorkPageState extends State<FindWorkPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${filteredProjects.length} projects found',
+                  '${getfilteredProjects(projects).length} projects found',
                   style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
                 DropdownButtonHideUnderline(
@@ -324,9 +224,9 @@ class _FindWorkPageState extends State<FindWorkPage> {
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.all(16),
-              itemCount: filteredProjects.length,
+              itemCount: getfilteredProjects(projects).length,
               itemBuilder: (context, index) {
-                return _buildProjectCard(filteredProjects[index]);
+                return _buildProjectCard(getfilteredProjects(projects)[index]);
               },
             ),
           ),
@@ -355,7 +255,10 @@ class _FindWorkPageState extends State<FindWorkPage> {
             offset: Offset(0, 2),
           ),
         ],
-        border: project['isUrgent']
+        border:
+            project['urgency'] == 'High' ||
+                project['urgency'] ==
+                    'Urgent' // isurgent
             ? Border.all(color: Colors.orange[300]!, width: 1)
             : null,
       ),
@@ -372,7 +275,8 @@ class _FindWorkPageState extends State<FindWorkPage> {
                   children: [
                     Row(
                       children: [
-                        if (project['isUrgent'])
+                        if (project['urgency'] == 'High' ||
+                            project['urgency'] == 'Urgent') // isurgent
                           Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: 6,
@@ -394,7 +298,7 @@ class _FindWorkPageState extends State<FindWorkPage> {
                           ),
                         Expanded(
                           child: Text(
-                            project['title'],
+                            project['title'] ?? "None",
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -404,38 +308,17 @@ class _FindWorkPageState extends State<FindWorkPage> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(
-                          project['requester'],
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 13,
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Icon(Icons.star, color: Colors.yellow[600], size: 14),
-                        Text(
-                          '${project['requesterRating']}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.green[100],
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '${project['tokens']} tokens',
+                  '${project['tokens'] ?? 0} tokens',
                   style: TextStyle(
                     color: Colors.green[700],
                     fontWeight: FontWeight.w600,
@@ -449,7 +332,7 @@ class _FindWorkPageState extends State<FindWorkPage> {
 
           // Description
           Text(
-            project['description'],
+            project['description'] ?? "No description provided.",
             style: TextStyle(
               color: Colors.grey[700],
               fontSize: 14,
@@ -502,14 +385,14 @@ class _FindWorkPageState extends State<FindWorkPage> {
                       ),
                       SizedBox(width: 4),
                       Text(
-                        project['deadline'],
+                        project['deadline'] ?? "No deadline",
                         style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                       SizedBox(width: 16),
                       Icon(Icons.people, size: 14, color: Colors.grey[600]),
                       SizedBox(width: 4),
                       Text(
-                        '${project['bids']} bids',
+                        '${project['bids'] ?? 0} bids',
                         style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     ],
@@ -527,7 +410,7 @@ class _FindWorkPageState extends State<FindWorkPage> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          project['difficulty'],
+                          project['difficulty'] ?? "None",
                           style: TextStyle(
                             color: difficultyColor,
                             fontSize: 10,
@@ -537,7 +420,7 @@ class _FindWorkPageState extends State<FindWorkPage> {
                       ),
                       SizedBox(width: 8),
                       Text(
-                        project['postedTime'],
+                        project['postedTime'] ?? "No info",
                         style: TextStyle(color: Colors.grey[500], fontSize: 11),
                       ),
                     ],
@@ -651,7 +534,7 @@ class _FindWorkPageState extends State<FindWorkPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(project['title']),
+          title: Text(project['title'] ?? "No Title"),
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -662,7 +545,7 @@ class _FindWorkPageState extends State<FindWorkPage> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 8),
-                Text(project['description']),
+                Text(project['description'] ?? "No description provided."),
                 SizedBox(height: 16),
                 Text(
                   'Required Skills:',
@@ -712,7 +595,7 @@ class _FindWorkPageState extends State<FindWorkPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Project: ${project['title']}'),
+              Text('Project: ${project['title'] ?? "No Title"}'),
               SizedBox(height: 16),
               TextField(
                 controller: bidController,
@@ -743,10 +626,10 @@ class _FindWorkPageState extends State<FindWorkPage> {
             ElevatedButton(
               onPressed: () {
                 // Handle bid submission
-                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Bid submitted successfully!')),
                 );
+                Navigator.pop(context);
               },
               child: Text('Submit Bid'),
             ),

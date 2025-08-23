@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:hackathonpro/provider/user_provider.dart';
 import 'package:provider/provider.dart';
@@ -599,13 +601,32 @@ class _ProfilePageState extends State<ProfilePage> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 20),
-                  _buildSettingsItem('Account Settings', Icons.person_outline),
-                  _buildSettingsItem('Notifications', Icons.notifications),
-                  _buildSettingsItem('Privacy', Icons.privacy_tip_outlined),
-                  _buildSettingsItem('Help & Support', Icons.help_outline),
-                  _buildSettingsItem('About', Icons.info_outline),
+                  _buildSettingsItem(
+                    'Account Settings',
+                    Icons.person_outline,
+                    () {},
+                  ),
+                  _buildSettingsItem(
+                    'Notifications',
+                    Icons.notifications,
+                    () {},
+                  ),
+                  _buildSettingsItem(
+                    'Privacy',
+                    Icons.privacy_tip_outlined,
+                    () {},
+                  ),
+                  _buildSettingsItem(
+                    'Help & Support',
+                    Icons.help_outline,
+                    () {},
+                  ),
+                  _buildSettingsItem('About', Icons.info_outline, () {}),
                   SizedBox(height: 10),
-                  _buildSettingsItem('Logout', Icons.logout, color: Colors.red),
+                  _buildSettingsItem('Logout', Icons.logout, () async {
+                    Navigator.of(context).pop(); // Close the bottom sheet
+                    await FirebaseAuth.instance.signOut();
+                  }, color: Colors.red),
                 ],
               ),
             ),
@@ -615,7 +636,12 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildSettingsItem(String title, IconData icon, {Color? color}) {
+  Widget _buildSettingsItem(
+    String title,
+    IconData icon,
+    void Function()? ontap, {
+    Color? color,
+  }) {
     return ListTile(
       leading: Icon(icon, color: color ?? Colors.grey[700]),
       title: Text(title, style: TextStyle(color: color ?? Colors.grey[800])),
@@ -624,10 +650,7 @@ class _ProfilePageState extends State<ProfilePage> {
         size: 16,
         color: Colors.grey[400],
       ),
-      onTap: () {
-        Navigator.pop(context);
-        // Handle settings item tap
-      },
+      onTap: ontap,
     );
   }
 }
