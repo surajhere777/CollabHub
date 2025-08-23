@@ -26,9 +26,18 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: FirebaseAuth.instance.currentUser != null
-          ? MainNavigator()
-          : SignUpPage(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasData) {
+            return MainNavigator();
+          }
+          return LoginPage(); // Or LoginPage() if you want login first
+        },
+      ),
       // Define your routes here
       // initialRoute: '/',
       // routes: {

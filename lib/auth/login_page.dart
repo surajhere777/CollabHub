@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hackathonpro/auth/sign_in.dart';
-import 'package:hackathonpro/pages/home/home_page.dart';
+import 'package:hackathonpro/main.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -87,7 +87,7 @@ class _LoginPageState extends State<LoginPage>
             context,
             MaterialPageRoute(
               builder: (context) {
-                return HomePage();
+                return MainNavigator();
               },
             ),
           );

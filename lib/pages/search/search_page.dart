@@ -553,6 +553,7 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
               ElevatedButton(
                 onPressed: () {
                   // Navigate to project details/bidding page
+                  _showProjectDetails(project);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[600],
@@ -562,7 +563,7 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
                   ),
                 ),
                 child: Text(
-                  'View & Bid',
+                  'View',
                   style: TextStyle(fontSize: 12, color: Colors.white),
                 ),
               ),
@@ -570,6 +571,61 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showProjectDetails(Map<String, dynamic> project) {
+    // Navigate to project details page or show detailed modal
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(project['title']),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Full Description:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Text(project['description']),
+                SizedBox(height: 16),
+                Text(
+                  'Required Skills:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: (project['skills'] as List<String>)
+                      .map(
+                        (skill) => Chip(
+                          label: Text(skill, style: TextStyle(fontSize: 12)),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Close'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showBidDialog(project, context);
+              },
+              child: Text('Bid Now'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -750,4 +806,60 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
       ),
     );
   }
+}
+
+void _showBidDialog(Map<String, dynamic> project, BuildContext context) {
+  TextEditingController bidController = TextEditingController();
+  TextEditingController messageController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Submit Your Bid'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Project: ${project['title']}'),
+            SizedBox(height: 16),
+            TextField(
+              controller: bidController,
+              decoration: InputDecoration(
+                labelText: 'Your bid (tokens)',
+                border: OutlineInputBorder(),
+                hintText: 'Enter your bid amount',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 16),
+            TextField(
+              controller: messageController,
+              decoration: InputDecoration(
+                labelText: 'Cover message',
+                border: OutlineInputBorder(),
+                hintText: 'Why should you be chosen for this project?',
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Handle bid submission
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Bid submitted successfully!')),
+              );
+            },
+            child: Text('Submit Bid'),
+          ),
+        ],
+      );
+    },
+  );
 }
