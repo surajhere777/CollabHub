@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:hackathonpro/auth/login_page.dart';
+import 'package:hackathonpro/auth/sign_in.dart';
 import 'package:hackathonpro/pages/post/post_page.dart';
 import 'package:hackathonpro/pages/profile/profile_page.dart';
 import 'package:hackathonpro/pages/search/search_page.dart';
 import 'package:hackathonpro/pages/work/work_page.dart';
 import 'pages/home/home_page.dart';
 
-void main() {
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(MyApp());
 }
 
@@ -18,12 +25,13 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
+      home: SignUpPage(),
       // Define your routes here
-      initialRoute: '/',
-      routes: {
-        '/': (context) => MainNavigator(),
-        '/browse': (context) => BrowseProjectsPage(),
-      },
+      // initialRoute: '/',
+      // routes: {
+      //   '/': (context) => MainNavigator(),
+      //   '/browse': (context) => BrowseProjectsPage(),
+      // },
     );
   }
 }
@@ -42,8 +50,8 @@ class _MainNavigatorState extends State<MainNavigator> {
     HomePage(),
     BrowseProjectsPage(),
     PostProjectPage(), // You'll build this next
-    MyWorkPage(),      // You'll build this next
-    ProfilePage(),     // You'll build this next
+    MyWorkPage(), // You'll build this next
+    ProfilePage(), // You'll build this next
   ];
 
   @override
