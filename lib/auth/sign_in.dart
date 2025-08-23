@@ -3,6 +3,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hackathonpro/auth/login_page.dart';
+import 'package:hackathonpro/main.dart';
+import 'package:hackathonpro/provider/user_provider.dart';
+import 'package:provider/provider.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -31,27 +34,63 @@ class _SignUpPageState extends State<SignUpPage>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  // Future<void> createUserWithEmailAndPassword() async {
+  //   // Implement your user creation logic here
+  //   try {
+  //     final userCred = await FirebaseAuth.instance
+  //         .createUserWithEmailAndPassword(
+  //           email: _emailController.text.trim(),
+  //           password: _passwordController.text.trim(),
+  //         )
+  //         .then((UserCredential user) {
+  //           // User created successfully
+  //           print("User created: ${user.user?.uid}");
+  //         })
+  //         .catchError((error) {
+  //           // Handle errors here
+  //           print("Error creating user: $error");
+  //         });
+  //     _handleSignUp();
+  //   } catch (e) {
+  //     print("Error: $e");
+  //   }
+  // }
   Future<void> createUserWithEmailAndPassword() async {
-    // Implement your user creation logic here
-    try {
-      final userCred = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
-          )
-          .then((UserCredential user) {
-            // User created successfully
-            print("User created: ${user.user?.uid}");
-          })
-          .catchError((error) {
-            // Handle errors here
-            print("Error creating user: $error");
-          });
-      _handleSignUp();
-    } catch (e) {
-      print("Error: $e");
-    }
+  if (!_formKey.currentState!.validate()) return;
+
+  setState(() => _isLoading = true);
+  try {
+    final credential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    final uid = credential.user!.uid;
+
+    // create Firestore doc via provider
+    await context.read<UserProvider>().createUserDoc(
+      uid: uid,
+      firstname: _firstNameController.text.trim(),
+      lastname: _lastNameController.text.trim(),
+      email: _emailController.text.trim(),
+      // leave other fields default or pass phone/education etc.
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Account created successfully!')),
+    );
+  } on FirebaseAuthException catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Sign up failed: ${e.message}')),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e')),
+    );
+  } finally {
+    setState(() => _isLoading = false);
   }
+}
 
   @override
   void initState() {

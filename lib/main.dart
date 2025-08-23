@@ -1,11 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hackathonpro/auth/login_page.dart';
-import 'package:hackathonpro/auth/sign_in.dart';
 import 'package:hackathonpro/pages/post/post_page.dart';
 import 'package:hackathonpro/pages/profile/profile_page.dart';
 import 'package:hackathonpro/pages/search/search_page.dart';
 import 'package:hackathonpro/pages/work/work_page.dart';
+import 'package:hackathonpro/provider/post_provider.dart';
+import 'package:hackathonpro/provider/user_provider.dart';
+import 'package:provider/provider.dart';
 import 'pages/home/home_page.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -20,30 +22,37 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'CollabHub',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => PostProvider()),
+      ],
+      child: MaterialApp(
+        title: 'CollabHub',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+        ),
+        home: StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasData) {
+              return MainNavigator();
+            }
+            return LoginPage(); // Or LoginPage() if you want login first
+          },
+        ),
+        // Define your routes here
+        // initialRoute: '/',
+        // routes: {
+        //   '/': (context) => MainNavigator(),
+        //   '/browse': (context) => BrowseProjectsPage(),
+        // },
       ),
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasData) {
-            return MainNavigator();
-          }
-          return LoginPage(); // Or LoginPage() if you want login first
-        },
-      ),
-      // Define your routes here
-      // initialRoute: '/',
-      // routes: {
-      //   '/': (context) => MainNavigator(),
-      //   '/browse': (context) => BrowseProjectsPage(),
-      // },
     );
   }
 }

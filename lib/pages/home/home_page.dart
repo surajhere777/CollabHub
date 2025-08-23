@@ -1,7 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hackathonpro/pages/home/bid_now_page.dart';
 import 'package:hackathonpro/pages/home/find_work.dart';
 import 'package:hackathonpro/pages/post/post_page.dart';
+import 'package:hackathonpro/provider/user_provider.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -43,9 +46,20 @@ class _HomePageState extends State<HomePage> {
       'bids': 7,
     },
   ];
+  void initState() {
+    super.initState();
+    // Fetch user when this screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        Provider.of<UserProvider>(context, listen: false).fetchUser(user.uid);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -74,7 +88,7 @@ class _HomePageState extends State<HomePage> {
                 Icon(Icons.monetization_on, color: Colors.green[700], size: 16),
                 SizedBox(width: 4),
                 Text(
-                  '${currentUser['tokens']} tokens',
+                  '${userProvider.user!.token} tokens',
                   style: TextStyle(
                     color: Colors.green[700],
                     fontWeight: FontWeight.w600,
@@ -98,7 +112,7 @@ class _HomePageState extends State<HomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Welcome section
-            _buildWelcomeSection(),
+            _buildWelcomeSection(userProvider),
             SizedBox(height: 24),
 
             // Quick actions
@@ -106,7 +120,7 @@ class _HomePageState extends State<HomePage> {
             SizedBox(height: 24),
 
             // Stats cards
-            _buildStatsCards(),
+            _buildStatsCards(userProvider),
             SizedBox(height: 24),
 
             // Featured projects
@@ -117,7 +131,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildWelcomeSection() {
+  Widget _buildWelcomeSection(UserProvider userProvider) {
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -135,7 +149,7 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome back, ${currentUser['name']}!',
+                  'Welcome back, ${userProvider.user!.firstname} ${userProvider.user!.lastname}!',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -156,7 +170,7 @@ class _HomePageState extends State<HomePage> {
                     Icon(Icons.star, color: Colors.yellow[300], size: 16),
                     SizedBox(width: 4),
                     Text(
-                      '${currentUser['rating']} rating',
+                      '${userProvider.user!.rating} rating',
                       style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ],
@@ -239,14 +253,34 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildStatsCards() {
+  Widget _buildStatsCards(UserProvider userProvider) {
     return Row(
       children: [
-        Expanded(child: _buildStatCard('12', 'Completed', Icons.check_circle)),
+        Expanded(
+          child: _buildStatCard(
+            userProvider.user!.completedprojects.toString(),
+            'Completed',
+            Icons.check_circle,
+          ),
+        ),
         SizedBox(width: 12),
-        Expanded(child: _buildStatCard('3', 'In Progress', Icons.pending)),
+        Expanded(
+          child: _buildStatCard(
+            (userProvider.user!.totalprojects -
+                    userProvider.user!.completedprojects)
+                .toString(),
+            'In Progress',
+            Icons.pending,
+          ),
+        ),
         SizedBox(width: 12),
-        Expanded(child: _buildStatCard('85', 'Tokens', Icons.monetization_on)),
+        Expanded(
+          child: _buildStatCard(
+            userProvider.user!.token,
+            'Tokens',
+            Icons.monetization_on,
+          ),
+        ),
       ],
     );
   }

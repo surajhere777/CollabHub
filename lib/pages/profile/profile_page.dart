@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hackathonpro/provider/user_provider.dart';
+import 'package:provider/provider.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -50,6 +52,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -70,11 +73,11 @@ class _ProfilePageState extends State<ProfilePage> {
         padding: EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildProfileHeader(),
+            _buildProfileHeader(userProvider),
             SizedBox(height: 16),
-            _buildStatsRow(),
+            _buildStatsRow(userProvider),
             SizedBox(height: 16),
-            _buildSkillsSection(),
+            _buildSkillsSection(userProvider),
             SizedBox(height: 16),
             _buildRecentReviews(),
             SizedBox(height: 16),
@@ -85,7 +88,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(UserProvider userProvider) {
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -115,7 +118,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      userData['name'],
+                      userProvider.user!.firstname +
+                          ' ' +
+                          userProvider.user!.lastname,
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -123,11 +128,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      '${userData['year']} • ${userData['major']}',
+                      userProvider.user!.stream,
                       style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                     Text(
-                      userData['university'],
+                      userProvider.user!.education,
                       style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                     SizedBox(height: 8),
@@ -136,7 +141,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         Icon(Icons.star, color: Colors.amber, size: 16),
                         SizedBox(width: 4),
                         Text(
-                          '${userData['rating']}',
+                          '${userProvider.user!.rating} rating',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: Colors.grey[800],
@@ -153,7 +158,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            '${userData['tokens']} tokens',
+                            '${userProvider.user!.token} tokens',
                             style: TextStyle(
                               color: Colors.green[700],
                               fontSize: 12,
@@ -173,7 +178,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           // Bio
           Text(
-            userData['bio'],
+            userProvider.user!.info,
             style: TextStyle(
               color: Colors.grey[600],
               fontSize: 14,
@@ -186,13 +191,21 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildStatsRow() {
+  String successRate(UserProvider userProvider) {
+    final total = userProvider.user!.totalprojects;
+    final completed = userProvider.user!.completedprojects;
+
+    if (total == 0) return "0%"; // avoid division by zero
+    return "${((completed / total) * 100).round()}%";
+  }
+
+  Widget _buildStatsRow(UserProvider userProvider) {
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
             'Projects',
-            '${userData['totalProjects']}',
+            userProvider.user!.totalprojects.toString(),
             Icons.work_outline,
             Colors.blue,
           ),
@@ -201,7 +214,7 @@ class _ProfilePageState extends State<ProfilePage> {
         Expanded(
           child: _buildStatCard(
             'Completed',
-            '${userData['completedProjects']}',
+            userProvider.user!.completedprojects.toString(),
             Icons.check_circle_outline,
             Colors.green,
           ),
@@ -210,7 +223,7 @@ class _ProfilePageState extends State<ProfilePage> {
         Expanded(
           child: _buildStatCard(
             'Success Rate',
-            '${((userData['completedProjects'] / userData['totalProjects']) * 100).round()}%',
+            successRate(userProvider),
             Icons.trending_up,
             Colors.orange,
           ),
@@ -256,7 +269,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildSkillsSection() {
+  Widget _buildSkillsSection(UserProvider userProvider) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -287,7 +300,7 @@ class _ProfilePageState extends State<ProfilePage> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: (userData['skills'] as List<String>)
+            children: (userProvider.user!.skills)
                 .map(
                   (skill) => Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),

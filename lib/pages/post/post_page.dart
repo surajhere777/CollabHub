@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -18,36 +20,52 @@ class _PostProjectPageState extends State<PostProjectPage> {
   String _selectedUrgency = 'Medium';
   List<String> _selectedSkills = [];
   List<String> _attachments = [];
-  
+
   bool _isPosting = false;
   int _currentUserTokens = 85; // Get from user data
 
   final List<String> categories = [
     'Web Development',
-    'Mobile Development', 
+    'Mobile Development',
     'Data Science',
     'Design',
     'Writing',
     'Marketing',
-    'Other'
+    'Other',
   ];
 
   final List<String> deadlineOptions = [
     '1-2 days',
-    '3-5 days', 
+    '3-5 days',
     '1 week',
     '2 weeks',
     '1 month',
-    'Flexible'
+    'Flexible',
   ];
 
   final List<String> urgencyLevels = ['Low', 'Medium', 'High', 'Urgent'];
 
   final List<String> availableSkills = [
-    'React', 'Flutter', 'Python', 'JavaScript', 'UI/UX', 'Figma',
-    'Node.js', 'Java', 'CSS', 'HTML', 'Data Analysis', 'Writing',
-    'SEO', 'Social Media', 'Graphic Design', 'Video Editing',
-    'WordPress', 'PHP', 'MongoDB', 'Firebase'
+    'React',
+    'Flutter',
+    'Python',
+    'JavaScript',
+    'UI/UX',
+    'Figma',
+    'Node.js',
+    'Java',
+    'CSS',
+    'HTML',
+    'Data Analysis',
+    'Writing',
+    'SEO',
+    'Social Media',
+    'Graphic Design',
+    'Video Editing',
+    'WordPress',
+    'PHP',
+    'MongoDB',
+    'Firebase',
   ];
 
   @override
@@ -116,29 +134,21 @@ class _PostProjectPageState extends State<PostProjectPage> {
                     SizedBox(height: 24),
 
                     // Project basics
-                    _buildSectionCard(
-                      'Project Basics',
-                      Icons.info_outline,
-                      [
-                        _buildProjectTitle(),
-                        SizedBox(height: 16),
-                        _buildCategorySelector(),
-                        SizedBox(height: 16),
-                        _buildProjectDescription(),
-                      ],
-                    ),
+                    _buildSectionCard('Project Basics', Icons.info_outline, [
+                      _buildProjectTitle(),
+                      SizedBox(height: 16),
+                      _buildCategorySelector(),
+                      SizedBox(height: 16),
+                      _buildProjectDescription(),
+                    ]),
                     SizedBox(height: 16),
 
                     // Requirements
-                    _buildSectionCard(
-                      'Requirements',
-                      Icons.build_outlined,
-                      [
-                        _buildSkillsSelector(),
-                        SizedBox(height: 16),
-                        _buildDeadlineAndUrgency(),
-                      ],
-                    ),
+                    _buildSectionCard('Requirements', Icons.build_outlined, [
+                      _buildSkillsSelector(),
+                      SizedBox(height: 16),
+                      _buildDeadlineAndUrgency(),
+                    ]),
                     SizedBox(height: 16),
 
                     // Token offer
@@ -157,11 +167,7 @@ class _PostProjectPageState extends State<PostProjectPage> {
                     _buildSectionCard(
                       'Additional Details',
                       Icons.note_outlined,
-                      [
-                        _buildAdditionalNotes(),
-                        SizedBox(height: 16),
-                        _buildAttachments(),
-                      ],
+                      [_buildAdditionalNotes()],
                     ),
                     SizedBox(height: 16),
 
@@ -269,9 +275,7 @@ class _PostProjectPageState extends State<PostProjectPage> {
           controller: _titleController,
           decoration: InputDecoration(
             hintText: 'e.g., Build a responsive e-commerce website',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.blue[600]!),
@@ -313,10 +317,12 @@ class _PostProjectPageState extends State<PostProjectPage> {
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               hintText: 'Select project category',
             ),
-            items: categories.map((category) => DropdownMenuItem(
-              value: category,
-              child: Text(category),
-            )).toList(),
+            items: categories
+                .map(
+                  (category) =>
+                      DropdownMenuItem(value: category, child: Text(category)),
+                )
+                .toList(),
             onChanged: (value) {
               setState(() {
                 _selectedCategory = value ?? '';
@@ -347,10 +353,9 @@ class _PostProjectPageState extends State<PostProjectPage> {
           controller: _descriptionController,
           maxLines: 5,
           decoration: InputDecoration(
-            hintText: 'Describe your project in detail...\n\n• What exactly needs to be done?\n• What deliverables do you expect?\n• Any specific requirements or preferences?',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            hintText:
+                'Describe your project in detail...\n\n• What exactly needs to be done?\n• What deliverables do you expect?\n• Any specific requirements or preferences?',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.blue[600]!),
@@ -393,16 +398,20 @@ class _PostProjectPageState extends State<PostProjectPage> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: _selectedSkills.map((skill) => Chip(
-                    label: Text(skill, style: TextStyle(fontSize: 12)),
-                    deleteIcon: Icon(Icons.close, size: 16),
-                    onDeleted: () {
-                      setState(() {
-                        _selectedSkills.remove(skill);
-                      });
-                    },
-                    backgroundColor: Colors.blue[100],
-                  )).toList(),
+                  children: _selectedSkills
+                      .map(
+                        (skill) => Chip(
+                          label: Text(skill, style: TextStyle(fontSize: 12)),
+                          deleteIcon: Icon(Icons.close, size: 16),
+                          onDeleted: () {
+                            setState(() {
+                              _selectedSkills.remove(skill);
+                            });
+                          },
+                          backgroundColor: Colors.blue[100],
+                        ),
+                      )
+                      .toList(),
                 ),
                 SizedBox(height: 12),
               ],
@@ -460,13 +469,20 @@ class _PostProjectPageState extends State<PostProjectPage> {
                   value: _selectedDeadline.isEmpty ? null : _selectedDeadline,
                   decoration: InputDecoration(
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     hintText: 'Select deadline',
                   ),
-                  items: deadlineOptions.map((deadline) => DropdownMenuItem(
-                    value: deadline,
-                    child: Text(deadline),
-                  )).toList(),
+                  items: deadlineOptions
+                      .map(
+                        (deadline) => DropdownMenuItem(
+                          value: deadline,
+                          child: Text(deadline),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedDeadline = value ?? '';
@@ -496,25 +512,32 @@ class _PostProjectPageState extends State<PostProjectPage> {
                   value: _selectedUrgency,
                   decoration: InputDecoration(
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
-                  items: urgencyLevels.map((urgency) => DropdownMenuItem(
-                    value: urgency,
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: _getUrgencyColor(urgency),
-                            shape: BoxShape.circle,
+                  items: urgencyLevels
+                      .map(
+                        (urgency) => DropdownMenuItem(
+                          value: urgency,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: _getUrgencyColor(urgency),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Text(urgency),
+                            ],
                           ),
                         ),
-                        SizedBox(width: 8),
-                        Text(urgency),
-                      ],
-                    ),
-                  )).toList(),
+                      )
+                      .toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedUrgency = value ?? 'Medium';
@@ -546,9 +569,7 @@ class _PostProjectPageState extends State<PostProjectPage> {
             hintText: 'Enter token amount',
             prefixIcon: Icon(Icons.monetization_on, color: Colors.green[600]),
             suffixText: 'tokens',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.blue[600]!),
@@ -658,64 +679,15 @@ class _PostProjectPageState extends State<PostProjectPage> {
           controller: _additionalNotesController,
           maxLines: 3,
           decoration: InputDecoration(
-            hintText: 'Any additional requirements, preferences, or information...',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            hintText:
+                'Any additional requirements, preferences, or information...',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.blue[600]!),
             ),
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildAttachments() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Attachments',
-          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-        ),
-        SizedBox(height: 8),
-        GestureDetector(
-          onTap: _addAttachment,
-          child: Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[300]!, style: BorderStyle.solid),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              children: [
-                Icon(Icons.cloud_upload_outlined, color: Colors.grey[600]),
-                SizedBox(height: 8),
-                Text(
-                  'Add files, images, or documents',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (_attachments.isNotEmpty) ...[
-          SizedBox(height: 8),
-          ..._attachments.map((attachment) => ListTile(
-            leading: Icon(Icons.attach_file),
-            title: Text(attachment),
-            trailing: IconButton(
-              icon: Icon(Icons.delete_outline),
-              onPressed: () {
-                setState(() {
-                  _attachments.remove(attachment);
-                });
-              },
-            ),
-          )).toList(),
-        ],
       ],
     );
   }
@@ -758,19 +730,13 @@ class _PostProjectPageState extends State<PostProjectPage> {
               children: [
                 Text(
                   _titleController.text,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 if (_selectedCategory.isNotEmpty) ...[
                   SizedBox(height: 4),
                   Text(
                     _selectedCategory,
-                    style: TextStyle(
-                      color: Colors.blue[600],
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.blue[600], fontSize: 12),
                   ),
                 ],
                 if (_descriptionController.text.isNotEmpty) ...[
@@ -786,17 +752,28 @@ class _PostProjectPageState extends State<PostProjectPage> {
                   SizedBox(height: 8),
                   Wrap(
                     spacing: 4,
-                    children: _selectedSkills.take(3).map((skill) => Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[100],
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        skill,
-                        style: TextStyle(fontSize: 10, color: Colors.blue[700]),
-                      ),
-                    )).toList(),
+                    children: _selectedSkills
+                        .take(3)
+                        .map(
+                          (skill) => Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[100],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              skill,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.blue[700],
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
                   ),
                 ],
                 if (_tokensController.text.isNotEmpty) ...[
@@ -807,10 +784,16 @@ class _PostProjectPageState extends State<PostProjectPage> {
                       if (_selectedDeadline.isNotEmpty)
                         Text(
                           _selectedDeadline,
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
                         ),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.green[100],
                           borderRadius: BorderRadius.circular(12),
@@ -836,7 +819,8 @@ class _PostProjectPageState extends State<PostProjectPage> {
   }
 
   Widget _buildPostButton() {
-    final isFormValid = _titleController.text.isNotEmpty &&
+    final isFormValid =
+        _titleController.text.isNotEmpty &&
         _selectedCategory.isNotEmpty &&
         _descriptionController.text.length >= 50 &&
         _selectedSkills.isNotEmpty &&
@@ -946,14 +930,6 @@ class _PostProjectPageState extends State<PostProjectPage> {
       },
     );
   }
-
-  void _addAttachment() {
-    // Implement file picker functionality
-    setState(() {
-      _attachments.add('Sample_document.pdf'); // Placeholder
-    });
-  }
-
   void _postProject() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -961,30 +937,57 @@ class _PostProjectPageState extends State<PostProjectPage> {
       _isPosting = true;
     });
 
-    // Simulate API call
-    await Future.delayed(Duration(seconds: 2));
+    try {
+      final user = FirebaseAuth.instance.currentUser;
 
-    // Show success dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        icon: Icon(Icons.check_circle, color: Colors.green, size: 48),
-        title: Text('Project Posted!'),
-        content: Text(
-          'Your project "${_titleController.text}" has been posted successfully. You\'ll receive notifications when students start bidding.',
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(); // Go back to previous screen
-            },
-            child: Text('Great!'),
+      if (user == null) {
+        throw Exception("User not logged in");
+      }
+
+      // Create a post object
+      final postData = {
+        "title": _titleController.text.trim(),
+        "description": _descriptionController.text.trim(),
+        "category": _selectedCategory,
+        "skills": _selectedSkills,
+        "deadline": _selectedDeadline,
+        "urgency": _selectedUrgency,
+        "tokens": int.parse(_tokensController.text),
+        "notes": _additionalNotesController.text.trim(),
+        "attachments": _attachments,
+        "ownerId": user.uid, // Who created the post
+        "createdAt": FieldValue.serverTimestamp(),
+      };
+
+      // Save to Firestore
+      await FirebaseFirestore.instance.collection("posts").add(postData);
+
+      // Success dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          icon: Icon(Icons.check_circle, color: Colors.green, size: 48),
+          title: Text('Project Posted!'),
+          content: Text(
+            'Your project "${_titleController.text}" has been posted successfully.',
           ),
-        ],
-      ),
-    );
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop(); // Go back
+              },
+              child: Text('Great!'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error posting project: $e")));
+    }
 
     setState(() {
       _isPosting = false;
@@ -998,7 +1001,9 @@ class _PostProjectPageState extends State<PostProjectPage> {
     if (_descriptionController.text.length >= 50) progress += 0.2;
     if (_selectedSkills.isNotEmpty) progress += 0.15;
     if (_selectedDeadline.isNotEmpty) progress += 0.1;
-    if (_tokensController.text.isNotEmpty && (int.tryParse(_tokensController.text) ?? 0) > 0) progress += 0.2;
+    if (_tokensController.text.isNotEmpty &&
+        (int.tryParse(_tokensController.text) ?? 0) > 0)
+      progress += 0.2;
     return progress.clamp(0.0, 1.0);
   }
 

@@ -1,8 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:hackathonpro/auth/sign_in.dart';
 import 'package:hackathonpro/main.dart';
+import 'package:hackathonpro/provider/user_provider.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -74,34 +75,76 @@ class _LoginPageState extends State<LoginPage>
     }
   }
 
+  // Future<void> loginWithEmailandPassword() async {
+  //   // Navigate to sign up page
+  //   FirebaseAuth.instance
+  //       .signInWithEmailAndPassword(
+  //         email: _emailController.text,
+  //         password: _passwordController.text,
+  //       )
+  //       .then((userCredential) {
+  //         // Handle successful login
+  //         Navigator.pushReplacement(
+  //           context,
+  //           MaterialPageRoute(
+  //             builder: (context) {
+  //               return MainNavigator();
+  //             },
+  //           ),
+  //         );
+  //         _isLoading ? null : _handleLogin;
+  //       })
+  //       .catchError((error) {
+  //         // Handle errors here
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(
+  //             content: Text('Login failed: ${error.message}'),
+  //             backgroundColor: Colors.red,
+  //           ),
+  //         );
+  //       });
+  // }
+
   Future<void> loginWithEmailandPassword() async {
-    // Navigate to sign up page
-    FirebaseAuth.instance
-        .signInWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
-        )
-        .then((userCredential) {
-          // Handle successful login
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) {
-                return MainNavigator();
-              },
-            ),
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
           );
-          _isLoading ? null : _handleLogin;
-        })
-        .catchError((error) {
-          // Handle errors here
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Login failed: ${error.message}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        });
+
+      // fetch Firestore user into provider
+      await context.read<UserProvider>().fetchUser(userCredential.user!.uid);
+
+      // navigate to main
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MainNavigator()),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Login successful!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Login failed: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
