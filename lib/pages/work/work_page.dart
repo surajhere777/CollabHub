@@ -164,6 +164,7 @@ class _MyWorkPageState extends State<MyWorkPage>
           'My Work',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.blue[600],

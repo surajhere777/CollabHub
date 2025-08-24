@@ -90,12 +90,8 @@ class _PostProjectPageState extends State<PostProjectPage> {
           'Post New Project',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        centerTitle: true,
         actions: [
-          // Token balance indicator
           Container(
             margin: EdgeInsets.only(right: 16),
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),

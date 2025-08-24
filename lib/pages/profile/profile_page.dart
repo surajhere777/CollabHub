@@ -54,6 +54,7 @@ class _ProfilePageState extends State<ProfilePage> {
           'Profile',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: Icon(Icons.settings, color: Colors.black),
@@ -577,7 +578,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Column(
       children: [
         SizedBox(
-          width: double.infinity,
+          width: 200,
           child: ElevatedButton(
             onPressed: () => _editProfile(context),
             style: ElevatedButton.styleFrom(
@@ -598,8 +599,10 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         SizedBox(height: 12),
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
+            SizedBox(
+              width: 200,
               child: OutlinedButton(
                 onPressed: _shareProfile,
                 style: OutlinedButton.styleFrom(
@@ -612,7 +615,8 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             SizedBox(width: 12),
-            Expanded(
+            SizedBox(
+              width: 200,
               child: OutlinedButton(
                 onPressed: _viewPortfolio,
                 style: OutlinedButton.styleFrom(
@@ -716,6 +720,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 infoController.text,
               );
               Navigator.pop(context);
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => ProfilePage()),
+              );
             },
             child: Text('Save'),
           ),

@@ -10,9 +10,8 @@ class ProjectBidsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Bids for $projectTitle'),
-      ),
+      appBar: AppBar(title: Text('Bids for $projectTitle'), centerTitle: true),
+
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('posts')
@@ -36,7 +35,7 @@ class ProjectBidsPage extends StatelessWidget {
             itemCount: bids.length,
             itemBuilder: (context, index) {
               final bid = bids[index].data() as Map<String, dynamic>;
-              
+
               return Card(
                 margin: EdgeInsets.only(bottom: 12),
                 child: ListTile(
@@ -49,24 +48,36 @@ class ProjectBidsPage extends StatelessWidget {
                       Text('Status: ${bid['status']}'),
                     ],
                   ),
-                  trailing: bid['status'] == 'pending' 
-                    ? Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () => _acceptBid(context, projectId, bids[index].id),
-                            child: Text('Accept'),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () => _rejectBid(context, projectId, bids[index].id),
-                            child: Text('Reject'),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                          ),
-                        ],
-                      )
-                    : null,
+                  trailing: bid['status'] == 'pending'
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => _acceptBid(
+                                context,
+                                projectId,
+                                bids[index].id,
+                              ),
+                              child: Text('Accept'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () => _rejectBid(
+                                context,
+                                projectId,
+                                bids[index].id,
+                              ),
+                              child: Text('Reject'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                              ),
+                            ),
+                          ],
+                        )
+                      : null,
                 ),
               );
             },
@@ -84,19 +95,19 @@ class ProjectBidsPage extends StatelessWidget {
           .collection('bids')
           .doc(bidId)
           .update({'status': 'accepted'});
-      
+
       await FirebaseFirestore.instance
           .collection('posts')
           .doc(projectId)
           .update({'status': 'assigned'});
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bid accepted successfully!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Bid accepted successfully!')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error accepting bid: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error accepting bid: $e')));
     }
   }
 
@@ -109,13 +120,13 @@ class ProjectBidsPage extends StatelessWidget {
           .doc(bidId)
           .update({'status': 'rejected'});
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bid rejected successfully!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Bid rejected successfully!')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error rejecting bid: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error rejecting bid: $e')));
     }
   }
 }

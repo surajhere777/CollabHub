@@ -96,6 +96,7 @@ class _FindWorkPageState extends State<FindWorkPage> {
             fontSize: 24,
           ),
         ),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list, color: Colors.grey[700]),

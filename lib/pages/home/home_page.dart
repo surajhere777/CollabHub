@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hackathonpro/pages/home/bid_now_page.dart';
+import 'package:hackathonpro/pages/home/chatbot_widget.dart';
 import 'package:hackathonpro/pages/home/find_work.dart';
 import 'package:hackathonpro/pages/post/post_page.dart';
 import 'package:hackathonpro/pages/profile/profile_page.dart';
@@ -18,7 +19,7 @@ class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> featuredProjects = [];
   bool isLoadingPosts = true;
   bool isLoadingUser = true;
-
+  ScrollController? _chatScrollController;
   void initState() {
     super.initState();
     // Fetch user when this screen loads
@@ -75,6 +76,7 @@ class _HomePageState extends State<HomePage> {
             fontSize: 24,
           ),
         ),
+        centerTitle: true,
         actions: [
           // Token balance
           Container(
@@ -120,6 +122,7 @@ class _HomePageState extends State<HomePage> {
           SizedBox(width: 16),
         ],
       ),
+
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -141,6 +144,24 @@ class _HomePageState extends State<HomePage> {
             _buildFeaturedProjectsFromProvider(),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            builder: (context) => SizedBox(
+              height: MediaQuery.of(context).size.height * 0.75,
+              child: ChatbotWidget(scrollController: _chatScrollController),
+            ),
+          );
+        },
+        icon: Icon(Icons.smart_toy),
+        label: Text('AI Assistant'),
+        backgroundColor: Colors.blueAccent,
       ),
     );
   }
@@ -210,7 +231,6 @@ class _HomePageState extends State<HomePage> {
             Icons.add_circle_outline,
             Colors.green,
             () {
-              // Navigate to post project page
               Navigator.of(context)
                   .push(
                     MaterialPageRoute(

@@ -5,11 +5,8 @@ class BidDialog extends StatefulWidget {
   final Map<String, dynamic> project;
   final Function(Map<String, dynamic> bidData)? onBidSubmitted;
 
-  const BidDialog({
-    Key? key,
-    required this.project,
-    this.onBidSubmitted,
-  }) : super(key: key);
+  const BidDialog({Key? key, required this.project, this.onBidSubmitted})
+    : super(key: key);
 
   @override
   _BidDialogState createState() => _BidDialogState();
@@ -20,10 +17,10 @@ class _BidDialogState extends State<BidDialog> {
   final _bidAmountController = TextEditingController();
   final _deliveryTimeController = TextEditingController();
   final _proposalController = TextEditingController();
-  
+
   bool _isSubmitting = false;
   String _selectedDeliveryUnit = 'days';
-  
+
   final List<String> _deliveryUnits = ['days', 'weeks', 'months'];
 
   @override
@@ -37,9 +34,7 @@ class _BidDialogState extends State<BidDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 0,
       backgroundColor: Colors.transparent,
       child: Container(
@@ -77,7 +72,7 @@ class _BidDialogState extends State<BidDialog> {
                   ],
                 ),
                 SizedBox(height: 16),
-                
+
                 // Project info card
                 Container(
                   padding: EdgeInsets.all(12),
@@ -110,7 +105,10 @@ class _BidDialogState extends State<BidDialog> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.green[100],
                               borderRadius: BorderRadius.circular(8),
@@ -138,7 +136,7 @@ class _BidDialogState extends State<BidDialog> {
                   ),
                 ),
                 SizedBox(height: 20),
-                
+
                 // Bid amount
                 Text(
                   'Your Bid Amount',
@@ -155,7 +153,10 @@ class _BidDialogState extends State<BidDialog> {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(
                     hintText: 'Enter your bid in tokens',
-                    prefixIcon: Icon(Icons.monetization_on, color: Colors.green[600]),
+                    prefixIcon: Icon(
+                      Icons.monetization_on,
+                      color: Colors.green[600],
+                    ),
                     suffixText: 'tokens',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -180,7 +181,7 @@ class _BidDialogState extends State<BidDialog> {
                   },
                 ),
                 SizedBox(height: 16),
-                
+
                 // Delivery time
                 Text(
                   'Delivery Time',
@@ -198,10 +199,15 @@ class _BidDialogState extends State<BidDialog> {
                       child: TextFormField(
                         controller: _deliveryTimeController,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         decoration: InputDecoration(
                           hintText: 'Time',
-                          prefixIcon: Icon(Icons.schedule, color: Colors.orange[600]),
+                          prefixIcon: Icon(
+                            Icons.schedule,
+                            color: Colors.orange[600],
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -252,7 +258,7 @@ class _BidDialogState extends State<BidDialog> {
                   ],
                 ),
                 SizedBox(height: 16),
-                
+
                 // Proposal/Cover letter
                 Text(
                   'Your Proposal',
@@ -267,7 +273,8 @@ class _BidDialogState extends State<BidDialog> {
                   controller: _proposalController,
                   maxLines: 4,
                   decoration: InputDecoration(
-                    hintText: 'Explain why you\'re the best fit for this project...',
+                    hintText:
+                        'Explain why you\'re the best fit for this project...',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -296,13 +303,15 @@ class _BidDialogState extends State<BidDialog> {
                   ),
                 ),
                 SizedBox(height: 24),
-                
+
                 // Action buttons
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                        onPressed: _isSubmitting
+                            ? null
+                            : () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
                           padding: EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
@@ -333,7 +342,9 @@ class _BidDialogState extends State<BidDialog> {
                                 width: 16,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : Text(
@@ -398,9 +409,7 @@ class _BidDialogState extends State<BidDialog> {
           ),
           backgroundColor: Colors.green[600],
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       );
     }
@@ -408,15 +417,16 @@ class _BidDialogState extends State<BidDialog> {
 }
 
 // Helper function to show the bid dialog
-void showBidDialog(BuildContext context, Map<String, dynamic> project, {Function(Map<String, dynamic>)? onBidSubmitted}) {
+void showBidDialog(
+  BuildContext context,
+  Map<String, dynamic> project, {
+  Function(Map<String, dynamic>)? onBidSubmitted,
+}) {
   showDialog(
     context: context,
     barrierDismissible: false,
     builder: (BuildContext context) {
-      return BidDialog(
-        project: project,
-        onBidSubmitted: onBidSubmitted,
-      );
-},
-);
+      return BidDialog(project: project, onBidSubmitted: onBidSubmitted);
+    },
+  );
 }

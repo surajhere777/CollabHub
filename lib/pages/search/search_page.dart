@@ -186,6 +186,7 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
           'Browse Projects',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list, color: Colors.black),
