@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hackathonpro/pages/home/bid_now_page.dart';
 import 'package:hackathonpro/pages/home/find_work.dart';
+import 'package:hackathonpro/pages/home/chatbot_widget.dart';
 import 'package:hackathonpro/pages/post/post_page.dart';
 import 'package:hackathonpro/pages/profile/profile_page.dart';
 import 'package:hackathonpro/provider/post_provider.dart';
@@ -15,6 +16,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final ScrollController _chatScrollController = ScrollController();
   List<Map<String, dynamic>> featuredProjects = [];
   bool isLoadingPosts = true;
   bool isLoadingUser = true;
@@ -141,6 +143,24 @@ class _HomePageState extends State<HomePage> {
             _buildFeaturedProjectsFromProvider(),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            builder: (context) => SizedBox(
+              height: MediaQuery.of(context).size.height * 0.75,
+              child: ChatbotWidget(scrollController: _chatScrollController),
+            ),
+          );
+        },
+        icon: Icon(Icons.smart_toy),
+        label: Text('AI Assistant'),
+        backgroundColor: Colors.blueAccent,
       ),
     );
   }
