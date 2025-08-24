@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hackathonpro/provider/user_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -10,23 +12,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // Sample user data - replace with your actual data
-  final Map<String, dynamic> userData = {
-    'name': 'Alex Chen',
-    'email': 'alex.chen@university.edu',
-    'university': 'MIT',
-    'year': 'Junior',
-    'major': 'Computer Science',
-    'tokens': 85,
-    'rating': 4.8,
-    'totalProjects': 15,
-    'completedProjects': 12,
-    'joinDate': 'January 2024',
-    'bio':
-        'Passionate computer science student specializing in web development and data analysis. Always excited to collaborate on innovative projects!',
-    'skills': ['React', 'Python', 'JavaScript', 'UI/UX', 'Data Analysis'],
-  };
-
   final List<Map<String, dynamic>> recentReviews = [
     {
       'reviewer': 'Sarah Kim',
@@ -55,6 +40,11 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
+
+    if (userProvider.user == null) {
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -106,7 +96,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       child: Column(
         children: [
-          // Profile picture and basic info
           Row(
             children: [
               CircleAvatar(
@@ -120,9 +109,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      userProvider.user!.firstname +
-                          ' ' +
-                          userProvider.user!.lastname,
+                      '${userProvider.user!.firstname} ${userProvider.user!.lastname}',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -175,10 +162,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ],
           ),
-
           SizedBox(height: 16),
-
-          // Bio
           Text(
             userProvider.user!.info,
             style: TextStyle(
@@ -197,7 +181,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final total = userProvider.user!.totalprojects;
     final completed = userProvider.user!.completedprojects;
 
-    if (total == 0) return "0%"; // avoid division by zero
+    if (total == 0) return "0%";
     return "${((completed / total) * 100).round()}%";
   }
 
@@ -295,7 +279,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 'Skills',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
-              TextButton(onPressed: _editSkills, child: Text('Edit')),
+              TextButton(
+                onPressed: () => _editSkills(userProvider),
+                child: Text('Edit'),
+              ),
             ],
           ),
           SizedBox(height: 12),
@@ -352,12 +339,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 'Recent Reviews',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
-              TextButton(
-                onPressed: () {
-                  // View all reviews
-                },
-                child: Text('View All'),
-              ),
+              TextButton(onPressed: _viewAllReviews, child: Text('View All')),
             ],
           ),
           SizedBox(height: 12),
@@ -446,7 +428,7 @@ class _ProfilePageState extends State<ProfilePage> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _editProfile,
+            onPressed: () => _editProfile(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue[600],
               padding: EdgeInsets.symmetric(vertical: 14),
@@ -497,31 +479,74 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _editProfile() {
-    // Navigate to edit profile page
+  void _editProfile(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    // Controllers for form fields
+    final firstNameController = TextEditingController(
+      text: userProvider.user!.firstname,
+    );
+    final lastNameController = TextEditingController(
+      text: userProvider.user!.lastname,
+    );
+    final educationController = TextEditingController(
+      text: userProvider.user!.education,
+    );
+    final streamController = TextEditingController(
+      text: userProvider.user!.stream,
+    );
+    final infoController = TextEditingController(text: userProvider.user!.info);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Edit Profile'),
-        content: Text('Edit profile functionality would be implemented here.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: firstNameController,
+                decoration: InputDecoration(
+                  labelText: 'First Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: lastNameController,
+                decoration: InputDecoration(
+                  labelText: 'Last Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: educationController,
+                decoration: InputDecoration(
+                  labelText: 'Education',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: streamController,
+                decoration: InputDecoration(
+                  labelText: 'Stream/Major',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: infoController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: 'Bio',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  void _editSkills() {
-    // Show skills editing dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Edit Skills'),
-        content: Text(
-          'Skills editing functionality would be implemented here.',
         ),
         actions: [
           TextButton(
@@ -529,7 +554,18 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () async {
+              // Update user profile
+              await _updateUserProfile(
+                userProvider,
+                firstNameController.text,
+                lastNameController.text,
+                educationController.text,
+                streamController.text,
+                infoController.text,
+              );
+              Navigator.pop(context);
+            },
             child: Text('Save'),
           ),
         ],
@@ -537,16 +573,209 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Future<void> _updateUserProfile(
+    UserProvider userProvider,
+    String firstName,
+    String lastName,
+    String education,
+    String stream,
+    String info,
+  ) async {
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(child: CircularProgressIndicator()),
+      );
+
+      // Update in Firestore
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance
+            .collection('Usercredential')
+            .doc(uid)
+            .update({
+              'firstname': firstName,
+              'lastname': lastName,
+              'education': education,
+              'stream': stream,
+              'info': info,
+            });
+
+        // Refresh user data
+        await userProvider.fetchUser(uid);
+      }
+
+      // Hide loading
+      Navigator.pop(context);
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Profile updated successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      Navigator.pop(context); // Hide loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating profile: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _editSkills(UserProvider userProvider) {
+    List<String> currentSkills = List.from(userProvider.user!.skills);
+    TextEditingController skillController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('Edit Skills'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: skillController,
+                  decoration: InputDecoration(
+                    labelText: 'Add new skill',
+                    border: OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(Icons.add),
+                      onPressed: () {
+                        if (skillController.text.isNotEmpty) {
+                          setState(() {
+                            currentSkills.add(skillController.text);
+                            skillController.clear();
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  onSubmitted: (value) {
+                    if (value.isNotEmpty) {
+                      setState(() {
+                        currentSkills.add(value);
+                        skillController.clear();
+                      });
+                    }
+                  },
+                ),
+                SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: currentSkills
+                      .map(
+                        (skill) => Chip(
+                          label: Text(skill),
+                          deleteIcon: Icon(Icons.close, size: 18),
+                          onDeleted: () {
+                            setState(() {
+                              currentSkills.remove(skill);
+                            });
+                          },
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _updateUserSkills(userProvider, currentSkills);
+                Navigator.pop(context);
+              },
+              child: Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateUserSkills(
+    UserProvider userProvider,
+    List<String> skills,
+  ) async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance
+            .collection('Usercredential')
+            .doc(uid)
+            .update({'skills': skills});
+
+        await userProvider.fetchUser(uid);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Skills updated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating skills: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void _shareProfile() {
-    // Share profile functionality
+    final user = FirebaseAuth.instance.currentUser;
+    final profileLink = 'https://collabhub.app/profile/${user?.uid ?? "user"}';
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Share Profile'),
-        content: Text('Profile link: https://collabhub.app/profile/alex-chen'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Share your profile with others:'),
+            SizedBox(height: 12),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                profileLink,
+                style: TextStyle(fontFamily: 'monospace'),
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: profileLink));
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Profile link copied to clipboard!')),
+              );
+            },
             child: Text('Copy Link'),
           ),
         ],
@@ -555,16 +784,95 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _viewPortfolio() {
-    // Navigate to portfolio page
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Portfolio'),
-        content: Text('Portfolio view would be implemented here.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.work, size: 48, color: Colors.blue),
+            SizedBox(height: 16),
+            Text('Portfolio feature coming soon!'),
+            SizedBox(height: 8),
+            Text(
+              'This will showcase your completed projects and achievements.',
+              style: TextStyle(color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _viewAllReviews() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('All Reviews'),
+        content: Container(
+          width: double.maxFinite,
+          height: 300,
+          child: ListView.builder(
+            itemCount: recentReviews.length,
+            itemBuilder: (context, index) {
+              final review = recentReviews[index];
+              return Card(
+                margin: EdgeInsets.only(bottom: 8),
+                child: Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.person, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            review['reviewer'],
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Spacer(),
+                          ...List.generate(
+                            review['rating'],
+                            (i) =>
+                                Icon(Icons.star, size: 16, color: Colors.amber),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        review['project'],
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(review['comment']),
+                      SizedBox(height: 4),
+                      Text(
+                        review['date'],
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
           ),
         ],
       ),
@@ -604,29 +912,31 @@ class _ProfilePageState extends State<ProfilePage> {
                   _buildSettingsItem(
                     'Account Settings',
                     Icons.person_outline,
-                    () {},
+                    _showAccountSettings,
                   ),
                   _buildSettingsItem(
                     'Notifications',
                     Icons.notifications,
-                    () {},
+                    _showNotifications,
                   ),
                   _buildSettingsItem(
                     'Privacy',
                     Icons.privacy_tip_outlined,
-                    () {},
+                    _showPrivacy,
                   ),
                   _buildSettingsItem(
                     'Help & Support',
                     Icons.help_outline,
-                    () {},
+                    _showHelp,
                   ),
-                  _buildSettingsItem('About', Icons.info_outline, () {}),
+                  _buildSettingsItem('About', Icons.info_outline, _showAbout),
                   SizedBox(height: 10),
-                  _buildSettingsItem('Logout', Icons.logout, () async {
-                    Navigator.of(context).pop(); // Close the bottom sheet
-                    await FirebaseAuth.instance.signOut();
-                  }, color: Colors.red),
+                  _buildSettingsItem(
+                    'Logout',
+                    Icons.logout,
+                    _logout,
+                    color: Colors.red,
+                  ),
                 ],
               ),
             ),
@@ -639,7 +949,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildSettingsItem(
     String title,
     IconData icon,
-    void Function()? ontap, {
+    VoidCallback onTap, {
     Color? color,
   }) {
     return ListTile(
@@ -650,7 +960,123 @@ class _ProfilePageState extends State<ProfilePage> {
         size: 16,
         color: Colors.grey[400],
       ),
-      onTap: ontap,
+      onTap: onTap,
+    );
+  }
+
+  void _showAccountSettings() {
+    Navigator.of(context).pop();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Account Settings'),
+        content: Text(
+          'Account settings functionality will be implemented here.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNotifications() {
+    Navigator.of(context).pop();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Notifications'),
+        content: Text('Notification preferences will be implemented here.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPrivacy() {
+    Navigator.of(context).pop();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Privacy Settings'),
+        content: Text('Privacy settings will be implemented here.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHelp() {
+    Navigator.of(context).pop();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Help & Support'),
+        content: Text(
+          'Contact support at support@collabhub.app or visit our FAQ section.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAbout() {
+    Navigator.of(context).pop();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('About'),
+        content: Text(
+          'CollabHub v1.0.0\nA platform for student collaboration and project management.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _logout() async {
+    Navigator.of(context).pop();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Logout'),
+        content: Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await FirebaseAuth.instance.signOut();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('Logout', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -986,7 +986,7 @@ class _PostProjectPageState extends State<PostProjectPage> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close dialog
-                Navigator.of(context).pop(); // Go back
+                Navigator.of(context).pushReplacementNamed('/posts'); // Go back
               },
               child: Text('Great!'),
             ),

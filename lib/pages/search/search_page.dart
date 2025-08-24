@@ -213,7 +213,10 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
                     padding: EdgeInsets.all(16),
                     itemCount: filteredProjects.length,
                     itemBuilder: (context, index) {
-                      return _buildProjectCard(filteredProjects[index]);
+                      return _buildProjectCard(
+                        filteredProjects[index],
+                        postProvider,
+                      );
                     },
                   ),
           ),
@@ -325,7 +328,12 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
     );
   }
 
-  Widget _buildProjectCard(Map<String, dynamic> project) {
+  Widget _buildProjectCard(
+    Map<String, dynamic> project,
+    PostProvider postProvider,
+  ) {
+    final bool hasBid = postProvider.hasBidOnProject(project['id'] ?? '');
+
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       padding: EdgeInsets.all(16),
@@ -343,7 +351,7 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with title and tokens
+          // Header with title, tokens, and bid status indicator
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -351,13 +359,51 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      project['title'],
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[800],
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            project['title'],
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                        ),
+                        // Bid status indicator
+                        if (hasBid)
+                          Container(
+                            margin: EdgeInsets.only(left: 8),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange[100],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.how_to_vote,
+                                  color: Colors.orange[700],
+                                  size: 12,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Bid Placed',
+                                  style: TextStyle(
+                                    color: Colors.orange[700],
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
                     SizedBox(height: 4),
                     Text(
@@ -498,24 +544,58 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
 
               SizedBox(width: 12),
 
-              // Bid button
-              ElevatedButton(
-                onPressed: () {
-                  // Navigate to project details/bidding page
-                  _showProjectDetails(project);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(
-                  'View',
-                  style: TextStyle(fontSize: 12, color: Colors.white),
-                ),
-              ),
+              // Action button - changes based on bid status
+              hasBid
+                  ? Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[100],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange[300]!),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            size: 14,
+                            color: Colors.orange[700],
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Bidded',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange[700],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ElevatedButton(
+                      onPressed: () {
+                        // Navigate to project details/bidding page
+                        _showProjectDetails(project);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue[600],
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'View',
+                        style: TextStyle(fontSize: 12, color: Colors.white),
+                      ),
+                    ),
             ],
           ),
         ],
@@ -524,6 +604,9 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
   }
 
   void _showProjectDetails(Map<String, dynamic> project) {
+    final postProvider = Provider.of<PostProvider>(context, listen: false);
+    final bool hasBid = postProvider.hasBidOnProject(project['id'] ?? '');
+
     // Navigate to project details page or show detailed modal
     showDialog(
       context: context,
@@ -535,6 +618,36 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Bid status indicator in modal
+                if (hasBid)
+                  Container(
+                    margin: EdgeInsets.only(bottom: 16),
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.orange[700],
+                          size: 16,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'You have already bid on this project',
+                          style: TextStyle(
+                            color: Colors.orange[700],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 Text(
                   'Full Description:',
                   style: TextStyle(fontWeight: FontWeight.bold),
@@ -565,17 +678,82 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
               onPressed: () => Navigator.pop(context),
               child: Text('Close'),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showBidDialog(project, context);
-              },
-              child: Text('Bid Now'),
-            ),
+            if (!hasBid)
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showBidDialog(project, context);
+                },
+                child: Text('Bid Now'),
+              )
+            else
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  _showBidDetails(project, context);
+                },
+                child: Text('View My Bid'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.orange[700],
+                ),
+              ),
           ],
         );
       },
     );
+  }
+
+  // New method to show bid details for projects user has already bid on
+  void _showBidDetails(
+    Map<String, dynamic> project,
+    BuildContext context,
+  ) async {
+    final postProvider = Provider.of<PostProvider>(context, listen: false);
+    final bidDetails = await postProvider.getUserBidForProject(
+      project['id'] ?? '',
+    );
+
+    if (bidDetails != null) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Your Bid Details'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Project: ${project['title']}',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                Text('Your Bid Amount: ${bidDetails['bidAmount']} tokens'),
+                SizedBox(height: 8),
+                Text('Status: ${bidDetails['status'] ?? 'pending'}'),
+                SizedBox(height: 16),
+                Text(
+                  'Your Message:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 4),
+                Text(bidDetails['message'] ?? 'No message provided'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not load bid details')));
+    }
   }
 
   Widget _buildEmptyState() {
@@ -835,54 +1013,33 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
       }
 
       final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final postProvider = Provider.of<PostProvider>(context, listen: false);
 
-      // Create bid data
-      Map<String, dynamic> bidData = {
-        'bidderId': user.uid,
-        'bidderName':
+      // Use PostProvider's submitBid method
+      await postProvider.submitBid(
+        projectId: project['id'],
+        bidderId: user.uid,
+        bidderName:
             '${userProvider.user!.firstname} ${userProvider.user!.lastname}',
-        'bidderEmail': user.email,
-        'bidAmount': int.parse(bidAmount),
-        'message': message,
-        'submittedAt': FieldValue.serverTimestamp(),
-        'status': 'pending', // pending, accepted, rejected
-      };
+        bidderEmail: user.email!,
+        bidAmount: int.parse(bidAmount),
+        message: message,
+      );
 
-      // Get project document ID
-      String projectId =
-          project['id']; // Make sure your PostProvider includes document ID
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bid submitted successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
-      if (projectId.isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: Project ID not found')));
-        return;
-      }
-
-      // Add bid to the bids subcollection
-      await FirebaseFirestore.instance
-          .collection('posts')
-          .doc(projectId)
-          .collection('bids')
-          .add(bidData);
-
-      // Update the bid count in the main post document
-      await FirebaseFirestore.instance
-          .collection('posts')
-          .doc(projectId)
-          .update({'bids': FieldValue.increment(1)});
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Bid submitted successfully!')));
-
-      // Refresh the page to show updated bid count
+      // Refresh the page to show updated bid status
       setState(() {});
     } catch (e) {
       print('Error submitting bid: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to submit bid. Please try again.'),
+          content: Text('Failed to submit bid: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hackathonpro/pages/home/bid_now_page.dart';
 import 'package:hackathonpro/pages/home/find_work.dart';
 import 'package:hackathonpro/pages/post/post_page.dart';
+import 'package:hackathonpro/pages/profile/profile_page.dart';
 import 'package:hackathonpro/provider/post_provider.dart';
 import 'package:hackathonpro/provider/user_provider.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +17,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> featuredProjects = [];
   bool isLoadingPosts = true;
+  bool isLoadingUser = true;
 
   void initState() {
     super.initState();
@@ -23,52 +25,43 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        Provider.of<UserProvider>(context, listen: false).fetchUser(user.uid);
-        fetchOnlyPosts(user.uid);
+        _initializeUserData(user.uid);
       }
     });
   }
 
-  void fetchOnlyPosts(String userId) async {
+  Future<void> _initializeUserData(String userId) async {
     try {
-      setState(() {
-        isLoadingPosts = true;
-      });
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final postProvider = Provider.of<PostProvider>(context, listen: false);
 
-      FirebaseFirestore firestore = FirebaseFirestore.instance;
-      QuerySnapshot snapshot = await firestore
-          .collection('posts')
-          .where('ownerId', isNotEqualTo: userId)
-          .get();
-      List<Map<String, dynamic>> posts = [];
-      for (QueryDocumentSnapshot doc in snapshot.docs) {
-        Map<String, dynamic> postData = doc.data() as Map<String, dynamic>;
-        postData['id'] = doc.id; // Add document ID
-        posts.add(postData);
-      }
+      // Initialize PostProvider with current user
+      postProvider.setCurrentUserId(userId);
 
+      await userProvider.fetchUser(userId);
       setState(() {
-        featuredProjects = posts;
-        isLoadingPosts = false;
+        isLoadingUser = false;
       });
     } catch (e) {
-      print('Error fetching posts: $e');
+      print('Error initializing user data: $e');
       setState(() {
-        isLoadingPosts = false;
+        isLoadingUser = false;
       });
-      // Show error message to user
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to load projects. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
+
+    // Show loading screen while user data is being fetched
+    if (isLoadingUser || userProvider.user == null) {
+      return Scaffold(
+        backgroundColor: Colors.grey[50],
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -97,7 +90,7 @@ class _HomePageState extends State<HomePage> {
                 Icon(Icons.monetization_on, color: Colors.green[700], size: 16),
                 SizedBox(width: 4),
                 Text(
-                  '${userProvider.user!.token} tokens',
+                  '${userProvider.user?.token ?? 0} tokens',
                   style: TextStyle(
                     color: Colors.green[700],
                     fontWeight: FontWeight.w600,
@@ -107,10 +100,22 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           // Profile avatar
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: Colors.blue[200],
-            child: Icon(Icons.person, color: Colors.blue[700]),
+          GestureDetector(
+            onTap: () {
+              // Navigate to profile page
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) {
+                    return ProfilePage();
+                  },
+                ),
+              );
+            },
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.blue[200],
+              child: Icon(Icons.person, color: Colors.blue[700]),
+            ),
           ),
           SizedBox(width: 16),
         ],
@@ -132,8 +137,8 @@ class _HomePageState extends State<HomePage> {
             _buildStatsCards(userProvider),
             SizedBox(height: 24),
 
-            // Featured projects
-            _buildFeaturedProjects(featuredProjects),
+            // Featured projects - Now using PostProvider
+            _buildFeaturedProjectsFromProvider(),
           ],
         ),
       ),
@@ -141,6 +146,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildWelcomeSection(UserProvider userProvider) {
+    final user = userProvider.user;
+    if (user == null) return SizedBox.shrink();
+
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -158,7 +166,7 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome back, ${userProvider.user!.firstname} ${userProvider.user!.lastname}!',
+                  'Welcome back, ${user.firstname ?? ''} ${user.lastname ?? ''}!',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -179,7 +187,7 @@ class _HomePageState extends State<HomePage> {
                     Icon(Icons.star, color: Colors.yellow[300], size: 16),
                     SizedBox(width: 4),
                     Text(
-                      '${userProvider.user!.rating} rating',
+                      '${user.rating ?? 0} rating',
                       style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ],
@@ -203,13 +211,22 @@ class _HomePageState extends State<HomePage> {
             Colors.green,
             () {
               // Navigate to post project page
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) {
-                    return PostProjectPage();
-                  },
-                ),
-              );
+              Navigator.of(context)
+                  .push(
+                    MaterialPageRoute(
+                      builder: (context) {
+                        return PostProjectPage();
+                      },
+                    ),
+                  )
+                  .then((_) {
+                    // Refresh data when returning from post page
+                    final postProvider = Provider.of<PostProvider>(
+                      context,
+                      listen: false,
+                    );
+                    postProvider.refreshPosts();
+                  });
             },
           ),
         ),
@@ -263,11 +280,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildStatsCards(UserProvider userProvider) {
+    final user = userProvider.user;
+    if (user == null) return SizedBox.shrink();
+
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
-            userProvider.user!.completedprojects.toString(),
+            (user.completedprojects ?? 0).toString(),
             'Completed',
             Icons.check_circle,
           ),
@@ -275,8 +295,7 @@ class _HomePageState extends State<HomePage> {
         SizedBox(width: 12),
         Expanded(
           child: _buildStatCard(
-            (userProvider.user!.totalprojects -
-                    userProvider.user!.completedprojects)
+            ((user.totalprojects ?? 0) - (user.completedprojects ?? 0))
                 .toString(),
             'In Progress',
             Icons.pending,
@@ -285,7 +304,7 @@ class _HomePageState extends State<HomePage> {
         SizedBox(width: 12),
         Expanded(
           child: _buildStatCard(
-            userProvider.user!.token,
+            (user.token ?? 0).toString(),
             'Tokens',
             Icons.monetization_on,
           ),
@@ -326,40 +345,78 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildFeaturedProjects(List<Map<String, dynamic>> projects) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  // Updated to use PostProvider
+  Widget _buildFeaturedProjectsFromProvider() {
+    return Consumer<PostProvider>(
+      builder: (context, postProvider, child) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Featured Projects',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Featured Projects',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    // Navigate to all projects
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => FindWorkPage()),
+                    );
+                  },
+                  child: Text('View All'),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () {
-                // Navigate to all projects
-              },
-              child: Text('View All'),
-            ),
+            SizedBox(height: 12),
+            postProvider.isLoading
+                ? Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                : postProvider.posts.isEmpty
+                ? Container(
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'No projects available at the moment.',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ),
+                  )
+                : Column(
+                    children: postProvider.posts
+                        .take(5) // Show only first 5 projects on home page
+                        .map(
+                          (project) => _buildProjectCard(project, postProvider),
+                        )
+                        .toList(),
+                  ),
           ],
-        ),
-        SizedBox(height: 12),
-        Column(
-          children: projects
-              .map((project) => _buildProjectCard(project))
-              .toList(),
-        ),
-      ],
+        );
+      },
     );
   }
 
-  Widget _buildProjectCard(Map<String, dynamic> project) {
+  Widget _buildProjectCard(
+    Map<String, dynamic> project,
+    PostProvider postProvider,
+  ) {
+    final projectId = project['id'] ?? '';
+    final hasBidded = postProvider.hasBidOnProject(projectId);
+
     return Container(
       margin: EdgeInsets.only(bottom: 12),
       padding: EdgeInsets.all(16),
@@ -382,7 +439,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               Expanded(
                 child: Text(
-                  project['title'],
+                  project['title'] ?? 'No Title',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -397,7 +454,7 @@ class _HomePageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${project['tokens']} tokens',
+                  '${project['tokens'] ?? 0} tokens',
                   style: TextStyle(
                     color: Colors.green[700],
                     fontWeight: FontWeight.w600,
@@ -409,7 +466,7 @@ class _HomePageState extends State<HomePage> {
           ),
           SizedBox(height: 8),
           Text(
-            project['description'],
+            project['description'] ?? 'No description',
             style: TextStyle(color: Colors.grey[600], fontSize: 14),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -417,7 +474,7 @@ class _HomePageState extends State<HomePage> {
           SizedBox(height: 12),
           Wrap(
             spacing: 6,
-            children: (project['skills'] as List<dynamic>)
+            children: (project['skills'] as List<dynamic>? ?? [])
                 .map(
                   (skill) => Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -426,7 +483,7 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      skill,
+                      skill.toString(),
                       style: TextStyle(color: Colors.blue[700], fontSize: 11),
                     ),
                   ),
@@ -442,34 +499,44 @@ class _HomePageState extends State<HomePage> {
                   Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
                   SizedBox(width: 4),
                   Text(
-                    project['deadline'],
+                    project['deadline'] ?? 'No deadline',
                     style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                   SizedBox(width: 12),
                   Icon(Icons.people, size: 14, color: Colors.grey[600]),
                   SizedBox(width: 4),
                   Text(
-                    project['bids'] == null
-                        ? '0 bids'
-                        : '${project['bids']} bids',
+                    '${project['bids'] ?? 0} bids',
                     style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                 ],
               ),
               ElevatedButton(
-                onPressed: () {
-                  _showBidDialog(project);
-                },
+                onPressed: hasBidded
+                    ? null // Disable button if already bidded
+                    : () {
+                        _showBidDialog(project, postProvider);
+                      },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
+                  backgroundColor: hasBidded
+                      ? Colors.grey[400]
+                      : Colors.blue[600],
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: Text(
-                  'Bid Now',
-                  style: TextStyle(fontSize: 12, color: Colors.white),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (hasBidded)
+                      Icon(Icons.check, size: 14, color: Colors.white),
+                    if (hasBidded) SizedBox(width: 4),
+                    Text(
+                      hasBidded ? 'Bidded' : 'Bid Now',
+                      style: TextStyle(fontSize: 12, color: Colors.white),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -479,7 +546,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showBidDialog(Map<String, dynamic> project) {
+  void _showBidDialog(Map<String, dynamic> project, PostProvider postProvider) {
     TextEditingController bidController = TextEditingController();
     TextEditingController messageController = TextEditingController();
 
@@ -525,6 +592,7 @@ class _HomePageState extends State<HomePage> {
                   project,
                   bidController.text,
                   messageController.text,
+                  postProvider,
                 );
                 Navigator.pop(context);
               },
@@ -540,6 +608,7 @@ class _HomePageState extends State<HomePage> {
     Map<String, dynamic> project,
     String bidAmount,
     String message,
+    PostProvider postProvider,
   ) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -558,22 +627,16 @@ class _HomePageState extends State<HomePage> {
       }
 
       final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final currentUser = userProvider.user;
 
-      // Create bid data
-      Map<String, dynamic> bidData = {
-        'bidderId': user.uid,
-        'bidderName':
-            '${userProvider.user!.firstname} ${userProvider.user!.lastname}',
-        'bidderEmail': user.email,
-        'bidAmount': int.parse(bidAmount),
-        'message': message,
-        'submittedAt': FieldValue.serverTimestamp(),
-        'status': 'pending', // pending, accepted, rejected
-      };
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('User data not loaded. Please try again.')),
+        );
+        return;
+      }
 
-      // Get project document ID (you'll need to store this in your project data)
-      String projectId =
-          project['id'] ?? project['postId']; // Make sure you have document ID
+      String projectId = project['id'] ?? '';
 
       if (projectId.isEmpty) {
         ScaffoldMessenger.of(
@@ -582,36 +645,34 @@ class _HomePageState extends State<HomePage> {
         return;
       }
 
-      // Add bid to the bids subcollection
-      await FirebaseFirestore.instance
-          .collection('posts')
-          .doc(projectId)
-          .collection('bids')
-          .add(bidData);
+      // Use PostProvider to submit bid
+      await postProvider.submitBid(
+        projectId: projectId,
+        bidderId: user.uid,
+        bidderName:
+            '${currentUser.firstname ?? ''} ${currentUser.lastname ?? ''}',
+        bidderEmail: user.email ?? '',
+        bidAmount: int.parse(bidAmount),
+        message: message,
+      );
 
-      // Update the bid count in the main post document
-      await FirebaseFirestore.instance
-          .collection('posts')
-          .doc(projectId)
-          .update({'bids': FieldValue.increment(1)});
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Bid submitted successfully!')));
-
-      // Refresh posts to show updated bid count
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        fetchOnlyPosts(currentUser.uid);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Bid submitted successfully!')));
       }
     } catch (e) {
       print('Error submitting bid: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to submit bid. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to submit bid: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
