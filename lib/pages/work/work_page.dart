@@ -473,6 +473,14 @@ class _MyWorkPageState extends State<MyWorkPage>
         color = Colors.green;
         text = 'Accepted';
         break;
+      case 'in_progress':
+        color = Colors.blue;
+        text = 'In Progress';
+        break;
+      case 'completed':
+        color = Colors.green;
+        text = 'Completed';
+        break;
       case 'rejected':
         color = Colors.red;
         text = 'Rejected';
@@ -558,6 +566,28 @@ class _MyWorkPageState extends State<MyWorkPage>
           onPressed: () => _startWork(bid),
           style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
           child: Text('Start Work', style: TextStyle(color: Colors.white)),
+        );
+      case 'in_progress':
+        return ElevatedButton(
+          onPressed: () => _showCompleteDialog(bid),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+          child: Text('Complete', style: TextStyle(color: Colors.white)),
+        );
+      case 'completed':
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.green[100],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            'Completed ✓',
+            style: TextStyle(
+              color: Colors.green[700],
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+            ),
+          ),
         );
       case 'rejected':
         return Text(
@@ -753,16 +783,585 @@ class _MyWorkPageState extends State<MyWorkPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Start Work'),
-        content: Text(
-          'Congratulations! You can now start working on this project.',
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.work, color: Colors.green[600]),
+            SizedBox(width: 8),
+            Text('Start Work'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Congratulations! You can now start working on this project.',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.monetization_on,
+                    color: Colors.green[600],
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Project Value: ${bid['myBid']} tokens',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'What would you like to do?',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+            child: Text('Later'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showProgressDialog(bid);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange[600],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Mark in Progress',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showCompleteDialog(bid);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[600],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text('Mark Complete', style: TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showProgressDialog(Map<String, dynamic> bid) {
+    TextEditingController progressController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.schedule, color: Colors.orange[600]),
+            SizedBox(width: 8),
+            Text('Mark as In Progress'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Add a progress note (optional):'),
+            SizedBox(height: 12),
+            TextField(
+              controller: progressController,
+              decoration: InputDecoration(
+                hintText: 'Working on initial research...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              maxLines: 3,
+            ),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info, color: Colors.orange[600], size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Project will be marked as "In Progress"',
+                      style: TextStyle(color: Colors.orange[700], fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _updateProjectProgress(bid, progressController.text);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange[600],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text('Mark Progress', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCompleteDialog(Map<String, dynamic> bid) {
+    TextEditingController completionController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green[600]),
+            SizedBox(width: 8),
+            Text('Complete Project'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Add completion notes:'),
+            SizedBox(height: 12),
+            TextField(
+              controller: completionController,
+              decoration: InputDecoration(
+                hintText: 'Project completed successfully...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              maxLines: 3,
+            ),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.monetization_on,
+                        color: Colors.green[600],
+                        size: 20,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'You will receive ${bid['myBid']} tokens',
+                        style: TextStyle(
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.trending_up,
+                        color: Colors.green[600],
+                        size: 20,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Your success rate will increase',
+                        style: TextStyle(
+                          color: Colors.green[700],
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _completeProject(bid, completionController.text);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[600],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Complete Project',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateProjectProgress(
+    Map<String, dynamic> bid,
+    String progressNote,
+  ) async {
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Container(
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Updating project status...'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      // Update project status to in_progress
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(bid['projectId'])
+          .update({
+            'status': 'in_progress',
+            'startedAt': FieldValue.serverTimestamp(),
+            'progressNote': progressNote,
+            'assignedTo': user.uid,
+          });
+
+      // Update bid status
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(bid['projectId'])
+          .collection('bids')
+          .doc(bid['bidId'])
+          .update({
+            'status': 'in_progress',
+            'startedAt': FieldValue.serverTimestamp(),
+          });
+
+      // Hide loading
+      Navigator.pop(context);
+
+      // Refresh data
+      _fetchMyData();
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Project marked as in progress!'),
+            ],
+          ),
+          backgroundColor: Colors.orange[600],
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          margin: EdgeInsets.all(16),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      // Hide loading if still showing
+      if (Navigator.canPop(context)) Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update project: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _completeProject(
+    Map<String, dynamic> bid,
+    String completionNote,
+  ) async {
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Container(
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Completing project...'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      // Start a batch write
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+
+      // Update project status to completed
+      DocumentReference projectRef = FirebaseFirestore.instance
+          .collection('posts')
+          .doc(bid['projectId']);
+
+      batch.update(projectRef, {
+        'status': 'completed',
+        'completedAt': FieldValue.serverTimestamp(),
+        'completedBy': user.uid,
+        'completionNote': completionNote,
+        'assignedTo': user.uid,
+      });
+
+      // Update bid status
+      DocumentReference bidRef = FirebaseFirestore.instance
+          .collection('posts')
+          .doc(bid['projectId'])
+          .collection('bids')
+          .doc(bid['bidId']);
+
+      batch.update(bidRef, {
+        'status': 'completed',
+        'completedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Update user's tokens and project counts
+      DocumentReference userRef = FirebaseFirestore.instance
+          .collection('Usercredential')
+          .doc(user.uid);
+
+      batch.update(userRef, {
+        'token': FieldValue.increment(bid['myBid']),
+        'completedprojects': FieldValue.increment(1),
+        'totalearnings': FieldValue.increment(bid['myBid']),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
+      // Commit the batch
+      await batch.commit();
+
+      // Update user's rating (optional - you might want to implement a more sophisticated rating system)
+      await _updateUserRating(user.uid);
+
+      // Hide loading
+      Navigator.pop(context);
+
+      // Refresh data
+      _fetchMyData();
+
+      // Show success animation/message
+      _showCompletionSuccess(bid['myBid']);
+    } catch (e) {
+      // Hide loading if still showing
+      if (Navigator.canPop(context)) Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to complete project: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _updateUserRating(String userId) async {
+    try {
+      // Get user's current stats
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('Usercredential')
+          .doc(userId)
+          .get();
+
+      if (userDoc.exists) {
+        final data = userDoc.data() as Map<String, dynamic>;
+        final completedProjects = data['completedprojects'] ?? 0;
+        final totalProjects = data['totalprojects'] ?? 0;
+
+        // Calculate new rating based on success rate
+        double successRate = totalProjects > 0
+            ? (completedProjects / totalProjects)
+            : 0;
+        double newRating = 3.0 + (successRate * 2.0); // Base 3.0, up to 5.0
+
+        // Update rating
+        await FirebaseFirestore.instance
+            .collection('Usercredential')
+            .doc(userId)
+            .update({'rating': double.parse(newRating.toStringAsFixed(1))});
+      }
+    } catch (e) {
+      print('Error updating user rating: $e');
+    }
+  }
+
+  void _showCompletionSuccess(int tokensEarned) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Success animation (you can use Lottie or custom animation)
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.green[100],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_circle,
+                  size: 50,
+                  color: Colors.green[600],
+                ),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Project Completed! 🎉',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Congratulations on successfully completing the project!',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              SizedBox(height: 20),
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.monetization_on, color: Colors.green[600]),
+                        SizedBox(width: 8),
+                        Text(
+                          '+$tokensEarned Tokens Earned',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Your success rate and rating have been updated!',
+                      style: TextStyle(color: Colors.green[600], fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[600],
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Continue',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

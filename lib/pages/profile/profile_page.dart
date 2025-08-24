@@ -256,16 +256,20 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildSkillsSection(UserProvider userProvider) {
+    // Add null check and ensure skills is not null
+    final skills = userProvider.user?.skills ?? <String>[];
+
     return Container(
-      padding: EdgeInsets.all(16),
+      width: double.infinity,
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: Offset(0, 2),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -275,43 +279,190 @@ class _ProfilePageState extends State<ProfilePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Skills',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.purple[50],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.psychology,
+                      color: Colors.purple[600],
+                      size: 20,
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Skills & Expertise',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                ],
               ),
-              TextButton(
-                onPressed: () => _editSkills(userProvider),
-                child: Text('Edit'),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextButton.icon(
+                  onPressed: () => _editSkills(userProvider),
+                  icon: Icon(Icons.edit, size: 16, color: Colors.blue[600]),
+                  label: Text(
+                    'Edit',
+                    style: TextStyle(
+                      color: Colors.blue[600],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
               ),
             ],
           ),
+          SizedBox(height: 16),
+
+          // Check if skills list is empty
+          skills.isEmpty ? _buildEmptySkillsState() : _buildSkillsGrid(skills),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptySkillsState() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 24),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!, style: BorderStyle.solid),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.psychology_outlined, size: 48, color: Colors.grey[400]),
           SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: (userProvider.user!.skills)
-                .map(
-                  (skill) => Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.blue[200]!),
-                    ),
-                    child: Text(
-                      skill,
-                      style: TextStyle(
-                        color: Colors.blue[700],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
+          Text(
+            'No skills added yet',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Add your skills to showcase your expertise',
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSkillsGrid(List<String> skills) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${skills.length} ${skills.length == 1 ? 'Skill' : 'Skills'}',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 12),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: skills.asMap().entries.map((entry) {
+            final index = entry.key;
+            final skill = entry.value;
+
+            // Different colors for variety
+            final colors = [
+              {
+                'bg': Colors.blue[50]!,
+                'text': Colors.blue[700]!,
+                'border': Colors.blue[200]!,
+              },
+              {
+                'bg': Colors.green[50]!,
+                'text': Colors.green[700]!,
+                'border': Colors.green[200]!,
+              },
+              {
+                'bg': Colors.purple[50]!,
+                'text': Colors.purple[700]!,
+                'border': Colors.purple[200]!,
+              },
+              {
+                'bg': Colors.orange[50]!,
+                'text': Colors.orange[700]!,
+                'border': Colors.orange[200]!,
+              },
+              {
+                'bg': Colors.teal[50]!,
+                'text': Colors.teal[700]!,
+                'border': Colors.teal[200]!,
+              },
+              {
+                'bg': Colors.indigo[50]!,
+                'text': Colors.indigo[700]!,
+                'border': Colors.indigo[200]!,
+              },
+            ];
+
+            final colorSet = colors[index % colors.length];
+
+            return Container(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: colorSet['bg'],
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: colorSet['border']!, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorSet['border']!.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: colorSet['text'],
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    skill,
+                    style: TextStyle(
+                      color: colorSet['text'],
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
@@ -629,63 +780,157 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _editSkills(UserProvider userProvider) {
-    List<String> currentSkills = List.from(userProvider.user!.skills);
+    List<String> currentSkills = List.from(
+      userProvider.user?.skills ?? <String>[],
+    );
     TextEditingController skillController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text('Edit Skills'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.psychology, color: Colors.purple[600]),
+              SizedBox(width: 8),
+              Text(
+                'Edit Skills',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: skillController,
-                  decoration: InputDecoration(
-                    labelText: 'Add new skill',
-                    border: OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(Icons.add),
-                      onPressed: () {
-                        if (skillController.text.isNotEmpty) {
+            child: Container(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: TextField(
+                      controller: skillController,
+                      decoration: InputDecoration(
+                        hintText: 'Add a new skill...',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.all(16),
+                        suffixIcon: Container(
+                          margin: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[600],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.add,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              if (skillController.text.trim().isNotEmpty) {
+                                setState(() {
+                                  currentSkills.add(
+                                    skillController.text.trim(),
+                                  );
+                                  skillController.clear();
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      onSubmitted: (value) {
+                        if (value.trim().isNotEmpty) {
                           setState(() {
-                            currentSkills.add(skillController.text);
+                            currentSkills.add(value.trim());
                             skillController.clear();
                           });
                         }
                       },
                     ),
                   ),
-                  onSubmitted: (value) {
-                    if (value.isNotEmpty) {
-                      setState(() {
-                        currentSkills.add(value);
-                        skillController.clear();
-                      });
-                    }
-                  },
-                ),
-                SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: currentSkills
-                      .map(
-                        (skill) => Chip(
-                          label: Text(skill),
-                          deleteIcon: Icon(Icons.close, size: 18),
-                          onDeleted: () {
-                            setState(() {
-                              currentSkills.remove(skill);
-                            });
-                          },
-                        ),
-                      )
-                      .toList(),
-                ),
-              ],
+                  SizedBox(height: 20),
+                  if (currentSkills.isNotEmpty) ...[
+                    Text(
+                      'Your Skills (${currentSkills.length})',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: currentSkills.map((skill) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.blue[200]!),
+                          ),
+                          child: Chip(
+                            label: Text(
+                              skill,
+                              style: TextStyle(
+                                color: Colors.blue[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            deleteIcon: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red[100],
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.close,
+                                size: 16,
+                                color: Colors.red[600],
+                              ),
+                            ),
+                            onDeleted: () {
+                              setState(() {
+                                currentSkills.remove(skill);
+                              });
+                            },
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ] else ...[
+                    Container(
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.psychology_outlined,
+                            size: 40,
+                            color: Colors.grey[400],
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'No skills added yet',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
           actions: [
@@ -694,11 +939,22 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () async {
-                await _updateUserSkills(userProvider, currentSkills);
-                Navigator.pop(context);
-              },
-              child: Text('Save'),
+              onPressed: currentSkills.isEmpty
+                  ? null
+                  : () async {
+                      await _updateUserSkills(userProvider, currentSkills);
+                      Navigator.pop(context);
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[600],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Save Changes',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),

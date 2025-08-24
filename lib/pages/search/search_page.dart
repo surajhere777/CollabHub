@@ -62,7 +62,6 @@ class _BrowseProjectsPageState extends State<BrowseProjectsPage> {
     List<Map<String, dynamic>> filtered = List.from(allProjects);
 
     // FIRST: Filter out current user's own posts (most important filter)
-    print(userProvider.user!.uid != filtered[0]['ownerId']);
     if (userProvider.user != null) {
       filtered = filtered
           .where((project) => project['ownerId'] != userProvider.user!.uid)

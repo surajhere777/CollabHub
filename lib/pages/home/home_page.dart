@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hackathonpro/pages/home/bid_now_page.dart';
 import 'package:hackathonpro/pages/home/find_work.dart';
-import 'package:hackathonpro/pages/home/chatbot_widget.dart';
 import 'package:hackathonpro/pages/post/post_page.dart';
 import 'package:hackathonpro/pages/profile/profile_page.dart';
 import 'package:hackathonpro/provider/post_provider.dart';
@@ -16,7 +15,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final ScrollController _chatScrollController = ScrollController();
   List<Map<String, dynamic>> featuredProjects = [];
   bool isLoadingPosts = true;
   bool isLoadingUser = true;
@@ -143,24 +141,6 @@ class _HomePageState extends State<HomePage> {
             _buildFeaturedProjectsFromProvider(),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            builder: (context) => SizedBox(
-              height: MediaQuery.of(context).size.height * 0.75,
-              child: ChatbotWidget(scrollController: _chatScrollController),
-            ),
-          );
-        },
-        icon: Icon(Icons.smart_toy),
-        label: Text('AI Assistant'),
-        backgroundColor: Colors.blueAccent,
       ),
     );
   }
@@ -303,34 +283,72 @@ class _HomePageState extends State<HomePage> {
     final user = userProvider.user;
     if (user == null) return SizedBox.shrink();
 
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            (user.completedprojects ?? 0).toString(),
-            'Completed',
-            Icons.check_circle,
-          ),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            ((user.totalprojects ?? 0) - (user.completedprojects ?? 0))
-                .toString(),
-            'In Progress',
-            Icons.pending,
-          ),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            (user.token ?? 0).toString(),
-            'Tokens',
-            Icons.monetization_on,
-          ),
-        ),
-      ],
+    // Get current user ID
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return SizedBox.shrink();
+
+    return StreamBuilder<QuerySnapshot>(
+      // Listen to real-time changes in posts collection
+      stream: FirebaseFirestore.instance
+          .collection('posts')
+          .where('assignedTo', isEqualTo: currentUserId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        // Calculate real stats
+        int completedProjects = 0;
+        int inProgressProjects = 0;
+
+        if (snapshot.hasData) {
+          for (var doc in snapshot.data!.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final status = data['status'] ?? '';
+
+            if (status == 'completed') {
+              completedProjects++;
+            } else if (status == 'in_progress' || status == 'assigned') {
+              inProgressProjects++;
+            }
+          }
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                completedProjects.toString(),
+                'Completed',
+                Icons.check_circle,
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                inProgressProjects.toString(),
+                'In Progress',
+                Icons.pending,
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                userProvider.getTokenAsInt().toString(),
+                'Tokens',
+                Icons.monetization_on,
+              ),
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  // Also ADD this method to your _HomePageState class:
+  void _refreshUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      await userProvider.fetchUser(user.uid);
+    }
   }
 
   Widget _buildStatCard(String value, String label, IconData icon) {

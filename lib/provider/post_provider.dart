@@ -163,19 +163,6 @@ class PostProvider with ChangeNotifier {
         .snapshots();
   }
 
-  /// Add a new post
-  Future<void> addPost(Map<String, dynamic> postData) async {
-    if (_currentUserId == null) {
-      throw Exception('User not authenticated');
-    }
-
-    // Ensure the current user is set as owner
-    postData['ownerId'] = _currentUserId;
-    postData['postedTime'] = FieldValue.serverTimestamp();
-
-    await _firestore.collection('posts').add(postData);
-  }
-
   /// Update an existing post (only if current user is owner)
   Future<void> updatePost(String id, Map<String, dynamic> updatedData) async {
     if (_currentUserId == null) {
@@ -288,7 +275,11 @@ class PostProvider with ChangeNotifier {
   }
 
   /// Accept a bid (only if current user owns the project)
-  Future<void> acceptBid(String projectId, String bidId) async {
+  Future<void> acceptBid(
+    String projectId,
+    String bidId, {
+    required BuildContext context,
+  }) async {
     try {
       if (_currentUserId == null) {
         throw Exception('User not authenticated');
@@ -306,6 +297,21 @@ class PostProvider with ChangeNotifier {
         }
       }
 
+      // Get the bid details to get the bidder ID
+      DocumentSnapshot bidDoc = await _firestore
+          .collection('posts')
+          .doc(projectId)
+          .collection('bids')
+          .doc(bidId)
+          .get();
+
+      if (!bidDoc.exists) {
+        throw Exception('Bid not found');
+      }
+
+      Map<String, dynamic> bidData = bidDoc.data() as Map<String, dynamic>;
+      String bidderId = bidData['bidderId'];
+
       await _firestore
           .collection('posts')
           .doc(projectId)
@@ -313,9 +319,11 @@ class PostProvider with ChangeNotifier {
           .doc(bidId)
           .update({'status': 'accepted'});
 
-      // Update project status
+      // Update project status and assign to bidder
       await _firestore.collection('posts').doc(projectId).update({
         'status': 'assigned',
+        'assignedTo': bidderId,
+        'assignedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
       throw Exception('Failed to accept bid: $e');
@@ -384,6 +392,184 @@ class PostProvider with ChangeNotifier {
     } catch (e) {
       print('Error fetching user bid: $e');
       return null;
+    }
+  }
+
+  /// Complete a project and handle all related updates
+  Future<void> completeProject({
+    required String projectId,
+    required String bidId,
+    required String userId,
+    required int tokensEarned,
+    String? completionNote,
+  }) async {
+    try {
+      WriteBatch batch = _firestore.batch();
+
+      // Update project status
+      DocumentReference projectRef = _firestore
+          .collection('posts')
+          .doc(projectId);
+      batch.update(projectRef, {
+        'status': 'completed',
+        'completedAt': FieldValue.serverTimestamp(),
+        'completedBy': userId,
+        'completionNote': completionNote,
+        'assignedTo': userId,
+      });
+
+      // Update bid status
+      DocumentReference bidRef = _firestore
+          .collection('posts')
+          .doc(projectId)
+          .collection('bids')
+          .doc(bidId);
+
+      batch.update(bidRef, {
+        'status': 'completed',
+        'completedAt': FieldValue.serverTimestamp(),
+      });
+
+      // *** KEY FIX: Update user's token balance ***
+      DocumentReference userRef = _firestore
+          .collection('Usercredential')
+          .doc(userId);
+
+      // Get current token value
+      DocumentSnapshot userDoc = await userRef.get();
+      if (userDoc.exists) {
+        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+        String currentTokensStr = userData['token']?.toString() ?? '0';
+        int currentTokens = int.tryParse(currentTokensStr) ?? 0;
+        int newTokens = currentTokens + tokensEarned;
+
+        batch.update(userRef, {
+          'token': newTokens.toString(),
+          'completedprojects': FieldValue.increment(1),
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+
+      // Refresh posts
+      fetchPosts();
+    } catch (e) {
+      throw Exception('Failed to complete project: $e');
+    }
+  }
+
+  Future<void> completeProjectWithTokens({
+    required String projectId,
+    required String bidId,
+    required String userId,
+    required int tokensEarned,
+    String? completionNote,
+  }) async {
+    await completeProject(
+      projectId: projectId,
+      bidId: bidId,
+      userId: userId,
+      tokensEarned: tokensEarned,
+      completionNote: completionNote,
+    );
+  }
+
+  /// Mark project as in progress
+  Future<void> markProjectInProgress({
+    required String projectId,
+    required String bidId,
+    required String userId,
+    String? progressNote,
+  }) async {
+    try {
+      WriteBatch batch = _firestore.batch();
+
+      // Update project status
+      DocumentReference projectRef = _firestore
+          .collection('posts')
+          .doc(projectId);
+      batch.update(projectRef, {
+        'status': 'in_progress',
+        'startedAt': FieldValue.serverTimestamp(),
+        'progressNote': progressNote,
+        'assignedTo': userId,
+      });
+
+      // Update bid status
+      DocumentReference bidRef = _firestore
+          .collection('posts')
+          .doc(projectId)
+          .collection('bids')
+          .doc(bidId);
+
+      batch.update(bidRef, {
+        'status': 'in_progress',
+        'startedAt': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
+
+      // Refresh posts
+      fetchPosts();
+    } catch (e) {
+      throw Exception('Failed to mark project in progress: $e');
+    }
+  }
+
+  /// Update post creation to increment total projects for user
+  /// Add a new post and update user's total projects
+  Future<void> addPost(Map<String, dynamic> postData) async {
+    if (_currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    // Ensure the current user is set as owner
+    postData['ownerId'] = _currentUserId;
+    postData['postedTime'] = FieldValue.serverTimestamp();
+    postData['status'] = 'active'; // Set initial status
+
+    // Add post
+    await _firestore.collection('posts').add(postData);
+
+    // Increment total projects count for the user
+    await _firestore.collection('Usercredential').doc(_currentUserId).update({
+      'totalprojects': FieldValue.increment(1),
+      'lastUpdated': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Get project statistics for a user
+  Future<Map<String, int>> getUserProjectStats(String userId) async {
+    try {
+      // Get all projects posted by user
+      QuerySnapshot postedProjects = await _firestore
+          .collection('posts')
+          .where('ownerId', isEqualTo: userId)
+          .get();
+
+      // Get all completed projects assigned to user
+      QuerySnapshot completedProjects = await _firestore
+          .collection('posts')
+          .where('assignedTo', isEqualTo: userId)
+          .where('status', isEqualTo: 'completed')
+          .get();
+
+      // Get all in-progress projects assigned to user
+      QuerySnapshot inProgressProjects = await _firestore
+          .collection('posts')
+          .where('assignedTo', isEqualTo: userId)
+          .where('status', isEqualTo: 'in_progress')
+          .get();
+
+      return {
+        'posted': postedProjects.docs.length,
+        'completed': completedProjects.docs.length,
+        'inProgress': inProgressProjects.docs.length,
+      };
+    } catch (e) {
+      print('Error getting user project stats: $e');
+      return {'posted': 0, 'completed': 0, 'inProgress': 0};
     }
   }
 }
